@@ -23,6 +23,7 @@ import bitsandbytes as bnb
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from data import D3Dataset, SFTData, SidSFTDataset, SidItemFeatDataset, FusionSeqRecDataset, PreferenceSFTDataset, UserPreference2sidSFTDataset, TitleHistory2SidSFTDataset
 import random
+import time
 from datasets import Dataset as HFDataset
 from torch.utils.data import ConcatDataset
 
@@ -102,6 +103,8 @@ def train(
     num_epochs: int = 10,
     learning_rate: float = 3e-4,
     cutoff_len: int = 512,
+    warmup_steps: int = 20,
+    warmup_ratio: float = 0.0,
     # llm hyperparams
     group_by_length: bool = False,  # faster, but produces an odd training loss curve
     freeze_LLM: bool = False,  # freeze LLM parameters, only train new token embeddings
@@ -235,10 +238,13 @@ def train(
             per_device_train_batch_size=micro_batch_size,
             per_device_eval_batch_size=micro_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
-            warmup_steps=20,
+            warmup_steps=warmup_steps,
+            warmup_ratio=warmup_ratio,
             num_train_epochs=num_epochs,
             learning_rate=learning_rate,
             bf16=True,
+            seed=seed,
+            data_seed=seed,
             logging_steps=1,
             optim="adamw_torch",
             eval_strategy="steps",
@@ -250,7 +256,7 @@ def train(
             load_best_model_at_end=True,
             ddp_find_unused_parameters=False if ddp else None,
             group_by_length=group_by_length,
-            report_to=None,
+            report_to=[],
         ),
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
@@ -259,13 +265,57 @@ def train(
         # optimizers=(optimizer, lr_scheduler) 
     )
     model.config.use_cache = False
-    
-    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+
+    os.makedirs(output_dir, exist_ok=True)
+    with open(os.path.join(output_dir, "run_config.json"), "w") as handle:
+        json.dump({
+            "base_model": base_model,
+            "train_file": train_file,
+            "eval_file": eval_file,
+            "sid_index_path": sid_index_path,
+            "item_meta_path": item_meta_path,
+            "sample": sample,
+            "seed": seed,
+            "batch_size": batch_size,
+            "micro_batch_size": micro_batch_size,
+            "gradient_accumulation_steps": gradient_accumulation_steps,
+            "world_size": world_size,
+            "num_epochs": num_epochs,
+            "learning_rate": learning_rate,
+            "cutoff_len": cutoff_len,
+            "warmup_steps": warmup_steps,
+            "warmup_ratio": warmup_ratio,
+            "freeze_LLM": freeze_LLM,
+            "train_from_scratch": train_from_scratch,
+            "train_samples": len(hf_train_dataset),
+            "valid_samples": len(hf_val_dataset),
+            "torch": torch.__version__,
+            "transformers": transformers.__version__,
+            "cuda": torch.version.cuda,
+        }, handle, indent=2)
+
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
+    training_start = time.perf_counter()
+    train_result = trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     trainer.save_model(output_dir)
-    
-    output_dir = os.path.join(output_dir, "final_checkpoint")
-    trainer.model.save_pretrained(output_dir)
-    tokenizer.save_pretrained(output_dir)
+
+    final_dir = os.path.join(output_dir, "final_checkpoint")
+    trainer.model.save_pretrained(final_dir)
+    tokenizer.save_pretrained(final_dir)
+    run_metrics = {
+        "training_and_save_seconds": time.perf_counter() - training_start,
+        "trainer_metrics": train_result.metrics,
+        "final_checkpoint": final_dir,
+        "best_model_checkpoint": trainer.state.best_model_checkpoint,
+        "best_valid_loss": trainer.state.best_metric,
+    }
+    if torch.cuda.is_available():
+        run_metrics["gpu_name"] = torch.cuda.get_device_name()
+        run_metrics["peak_allocated_gib"] = torch.cuda.max_memory_allocated() / 2**30
+        run_metrics["peak_reserved_gib"] = torch.cuda.max_memory_reserved() / 2**30
+    with open(os.path.join(output_dir, "run_metrics.json"), "w") as handle:
+        json.dump(run_metrics, handle, indent=2)
 
 
 
