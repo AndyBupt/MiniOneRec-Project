@@ -70,3 +70,8 @@ zero-var/all-zero 组率、KL、奖励分布：
 ## 2026-10-21 诊断与调优过程复盘
 
 新增 `SFT_TROUBLESHOOTING_LOG.md`，按证据串联首次 SFT、valid 评估、简单参照、SID 碰撞与预测集中、解码/参数检查、train-256 和 tiny-fit 对照，区分已确认事实与待验证假设。用户反馈 128 条短程对照正在运行；尚未收到 profile/comparison，未记录调优收益。
+
+
+## 2026-10-21 tiny-fit 对照结果
+
+已收到用户 `comparison.json` 并保存原始副本。两组报告的起点、样本哈希和训练超参一致；同一128条train样本的初始/BF16/FP32 HR@10为5/128、34/128、44/128，候选不同SID数24/117/133。最终目标NLL为BF16 2.1485、FP32 1.9970；FP32训练149.07秒、allocated28.83GiB，BF16为131.78秒、14.41GiB。支持参数精度配置影响小样本拟合，不代表完整valid收益或唯一根因。完整三任务FP32参数SFT对照尚未启动；详见 `experiments/TINY_SFT128_20261021.md`，总复盘已更新。

@@ -1,0 +1,315 @@
+{
+  "purpose": "Fixed train-only tiny-fit precision diagnosis, not generalization or E1 replacement",
+  "arms": {
+    "initial": {
+      "metrics": {
+        "queries": 128,
+        "metric_unit": "SID exact match; raw ranks retained, no deduplication or history filtering",
+        "catalog_items": 3686,
+        "catalog_unique_sids": 3670,
+        "target_collision_queries": 6,
+        "target_collision_query_fraction": 0.046875,
+        "invalid_definition": "out-of-catalog or missing slots divided by queries*K",
+        "HR@5": 0.015625,
+        "NDCG@5": 0.015625,
+        "invalid_sid@5": 0.0,
+        "missing_slots@5": 0.0,
+        "duplicate_slots@5": 0.0,
+        "HR@10": 0.0390625,
+        "NDCG@10": 0.022932760348916375,
+        "invalid_sid@10": 0.0,
+        "missing_slots@10": 0.0,
+        "duplicate_slots@10": 0.0,
+        "unique_target_sid_subset": {
+          "queries": 122,
+          "HR@5": 0.0,
+          "NDCG@5": 0.0,
+          "HR@10": 0.02459016393442623,
+          "NDCG@10": 0.00766715839886308
+        }
+      },
+      "distinct_predicted_sids_at10": 24,
+      "distinct_top1_sids": 4,
+      "most_common_top1": [
+        [
+          "<a_107><b_93><c_0>",
+          98
+        ]
+      ]
+    },
+    "bf16": {
+      "metrics": {
+        "queries": 128,
+        "metric_unit": "SID exact match; raw ranks retained, no deduplication or history filtering",
+        "catalog_items": 3686,
+        "catalog_unique_sids": 3670,
+        "target_collision_queries": 6,
+        "target_collision_query_fraction": 0.046875,
+        "invalid_definition": "out-of-catalog or missing slots divided by queries*K",
+        "HR@5": 0.1484375,
+        "NDCG@5": 0.08062404426211268,
+        "invalid_sid@5": 0.0,
+        "missing_slots@5": 0.0,
+        "duplicate_slots@5": 0.0,
+        "HR@10": 0.265625,
+        "NDCG@10": 0.11918964856552863,
+        "invalid_sid@10": 0.0,
+        "missing_slots@10": 0.0,
+        "duplicate_slots@10": 0.0,
+        "unique_target_sid_subset": {
+          "queries": 122,
+          "HR@5": 0.13114754098360656,
+          "NDCG@5": 0.06409735791434772,
+          "HR@10": 0.2459016393442623,
+          "NDCG@10": 0.10182739084470761
+        }
+      },
+      "distinct_predicted_sids_at10": 117,
+      "distinct_top1_sids": 14,
+      "most_common_top1": [
+        [
+          "<a_107><b_93><c_0>",
+          32
+        ]
+      ],
+      "training": {
+        "precision": "bf16",
+        "checkpoint": "/root/autodl-tmp/MiniOneRec-Project/output/sft_e1_Industrial_and_Scientific_20261020T101253Z/final_checkpoint",
+        "samples": 128,
+        "sample_sha256": "f23410f8363165318a2522b85b4bca8258db2fd8cb32c1a3a8663849f3b23e3f",
+        "steps": 100,
+        "lr": 2e-05,
+        "effective_batch_size": 32,
+        "micro_batch_size": 2,
+        "seed": 42,
+        "parameter_dtypes": {
+          "torch.bfloat16": 338
+        },
+        "torch": "2.5.1+cu124",
+        "transformers": "4.57.1",
+        "gpu": "NVIDIA A800-SXM4-80GB",
+        "teacher_before": {
+          "target_token_loss_including_newline_eos": 2.9148744121193886,
+          "sid_layers": {
+            "a": {
+              "nll": 3.4821975766681135,
+              "top1": 0.09375,
+              "top10": 0.546875
+            },
+            "b": {
+              "nll": 5.556038348004222,
+              "top1": 0.0625,
+              "top10": 0.15625
+            },
+            "c": {
+              "nll": 5.536134423688054,
+              "top1": 0.0625,
+              "top10": 0.1484375
+            }
+          },
+          "scope": "Same training subset, unrestricted-vocab teacher forcing; gold earlier SID tokens; not generated accuracy"
+        },
+        "teacher_after": {
+          "target_token_loss_including_newline_eos": 2.1484967075288295,
+          "sid_layers": {
+            "a": {
+              "nll": 2.513512278907001,
+              "top1": 0.3203125,
+              "top10": 0.84375
+            },
+            "b": {
+              "nll": 3.815794399706647,
+              "top1": 0.1484375,
+              "top10": 0.53125
+            },
+            "c": {
+              "nll": 4.413174433633685,
+              "top1": 0.0625,
+              "top10": 0.3203125
+            }
+          },
+          "scope": "Same training subset, unrestricted-vocab teacher forcing; gold earlier SID tokens; not generated accuracy"
+        },
+        "sampled_updates_before_export": {
+          "model.layers.0.self_attn.q_proj.weight": {
+            "unchanged_fraction": 0.6944172978401184,
+            "mean_absolute_delta": 2.1865957023692317e-05,
+            "max_absolute_delta": 0.00079345703125
+          },
+          "model.layers.10.mlp.down_proj.weight": {
+            "unchanged_fraction": 0.77685546875,
+            "mean_absolute_delta": 1.7171445506392047e-05,
+            "max_absolute_delta": 0.0009918212890625
+          },
+          "model.layers.27.self_attn.o_proj.weight": {
+            "unchanged_fraction": 0.7733561396598816,
+            "mean_absolute_delta": 2.976011273858603e-05,
+            "max_absolute_delta": 0.00213623046875
+          },
+          "model.norm.weight": {
+            "unchanged_fraction": 0.9993489384651184,
+            "mean_absolute_delta": 1.9868215517249155e-08,
+            "max_absolute_delta": 3.0517578125e-05
+          },
+          "target_sid_embedding_rows": {
+            "unchanged_fraction": 0.2972494959831238,
+            "mean_absolute_delta": 0.00018133872072212398,
+            "max_absolute_delta": 0.0028076171875
+          }
+        },
+        "resources": {
+          "training_seconds": 131.78090865164995,
+          "peak_allocated_gib": 14.40772819519043,
+          "peak_reserved_gib": 16.37890625
+        },
+        "trainer": {
+          "train_runtime": 131.5772,
+          "train_samples_per_second": 24.32,
+          "train_steps_per_second": 0.76,
+          "total_flos": 2901660173254656.0,
+          "train_loss": 2.5681850624084475,
+          "epoch": 25.0
+        },
+        "export": "Both arms exported BF16 for identical evaluate.py inference precision; optimizer states not saved",
+        "status": "TRAINING_COMPLETE"
+      }
+    },
+    "fp32": {
+      "metrics": {
+        "queries": 128,
+        "metric_unit": "SID exact match; raw ranks retained, no deduplication or history filtering",
+        "catalog_items": 3686,
+        "catalog_unique_sids": 3670,
+        "target_collision_queries": 6,
+        "target_collision_query_fraction": 0.046875,
+        "invalid_definition": "out-of-catalog or missing slots divided by queries*K",
+        "HR@5": 0.21875,
+        "NDCG@5": 0.13289557073410008,
+        "invalid_sid@5": 0.0,
+        "missing_slots@5": 0.0,
+        "duplicate_slots@5": 0.0,
+        "HR@10": 0.34375,
+        "NDCG@10": 0.17274457786804767,
+        "invalid_sid@10": 0.0,
+        "missing_slots@10": 0.0,
+        "duplicate_slots@10": 0.0,
+        "unique_target_sid_subset": {
+          "queries": 122,
+          "HR@5": 0.1885245901639344,
+          "NDCG@5": 0.10557133852781435,
+          "HR@10": 0.319672131147541,
+          "NDCG@10": 0.14738013289785773
+        }
+      },
+      "distinct_predicted_sids_at10": 133,
+      "distinct_top1_sids": 18,
+      "most_common_top1": [
+        [
+          "<a_223><b_198><c_2>",
+          22
+        ]
+      ],
+      "training": {
+        "precision": "fp32",
+        "checkpoint": "/root/autodl-tmp/MiniOneRec-Project/output/sft_e1_Industrial_and_Scientific_20261020T101253Z/final_checkpoint",
+        "samples": 128,
+        "sample_sha256": "f23410f8363165318a2522b85b4bca8258db2fd8cb32c1a3a8663849f3b23e3f",
+        "steps": 100,
+        "lr": 2e-05,
+        "effective_batch_size": 32,
+        "micro_batch_size": 2,
+        "seed": 42,
+        "parameter_dtypes": {
+          "torch.float32": 338
+        },
+        "torch": "2.5.1+cu124",
+        "transformers": "4.57.1",
+        "gpu": "NVIDIA A800-SXM4-80GB",
+        "teacher_before": {
+          "target_token_loss_including_newline_eos": 2.918540871143341,
+          "sid_layers": {
+            "a": {
+              "nll": 3.4883330115117133,
+              "top1": 0.1015625,
+              "top10": 0.5234375
+            },
+            "b": {
+              "nll": 5.560106926597655,
+              "top1": 0.0625,
+              "top10": 0.15625
+            },
+            "c": {
+              "nll": 5.544262588024139,
+              "top1": 0.0625,
+              "top10": 0.140625
+            }
+          },
+          "scope": "Same training subset, unrestricted-vocab teacher forcing; gold earlier SID tokens; not generated accuracy"
+        },
+        "teacher_after": {
+          "target_token_loss_including_newline_eos": 1.997042615711689,
+          "sid_layers": {
+            "a": {
+              "nll": 2.277792687062174,
+              "top1": 0.390625,
+              "top10": 0.90625
+            },
+            "b": {
+              "nll": 3.5242132511921227,
+              "top1": 0.1640625,
+              "top10": 0.6484375
+            },
+            "c": {
+              "nll": 4.182815404608846,
+              "top1": 0.0859375,
+              "top10": 0.390625
+            }
+          },
+          "scope": "Same training subset, unrestricted-vocab teacher forcing; gold earlier SID tokens; not generated accuracy"
+        },
+        "sampled_updates_before_export": {
+          "model.layers.0.self_attn.q_proj.weight": {
+            "unchanged_fraction": 0.0,
+            "mean_absolute_delta": 7.138080400181934e-05,
+            "max_absolute_delta": 0.0005741759669035673
+          },
+          "model.layers.10.mlp.down_proj.weight": {
+            "unchanged_fraction": 4.185267971479334e-05,
+            "mean_absolute_delta": 9.221917571267113e-05,
+            "max_absolute_delta": 0.0007289725472219288
+          },
+          "model.layers.27.self_attn.o_proj.weight": {
+            "unchanged_fraction": 0.0,
+            "mean_absolute_delta": 0.00013703020522370934,
+            "max_absolute_delta": 0.0007870891131460667
+          },
+          "model.norm.weight": {
+            "unchanged_fraction": 0.0,
+            "mean_absolute_delta": 0.0007958796923048794,
+            "max_absolute_delta": 0.0020749568939208984
+          },
+          "target_sid_embedding_rows": {
+            "unchanged_fraction": 0.0,
+            "mean_absolute_delta": 0.0002914014912676066,
+            "max_absolute_delta": 0.002080182544887066
+          }
+        },
+        "resources": {
+          "training_seconds": 149.07248498126864,
+          "peak_allocated_gib": 28.82652759552002,
+          "peak_reserved_gib": 31.47265625
+        },
+        "trainer": {
+          "train_runtime": 148.9059,
+          "train_samples_per_second": 21.49,
+          "train_steps_per_second": 0.672,
+          "total_flos": 2901660173254656.0,
+          "train_loss": 2.6306686782836914,
+          "epoch": 25.0
+        },
+        "export": "Both arms exported BF16 for identical evaluate.py inference precision; optimizer states not saved",
+        "status": "TRAINING_COMPLETE"
+      }
+    }
+  }
+}
