@@ -1,16 +1,18 @@
 # 项目进度与实验日志
 
-## 当前状态（2026-10-20）
+## 当前状态（2026-10-21）
 
 | 项目 | 状态 | 证据/下一步 |
 |---|---|---|
 | 仓库获取 | 完成 | 从 `https://github.com/AkaliKong/MiniOneRec` clone；基准 commit `5f4f733cfda387f7f6f8f158db0d300eed9471c6`。clone 前工作目录为空，未覆盖已有文件。 |
 | 源码审查 | 完成首轮 | README、SFT/RL/HEPO、数据、RQ-VAE、约束解码与指标已审；细节见 `CODEBASE_ANALYSIS.md`。 |
 | 自带数据静态审计 | 完成初步 | Industrial 36,259/4,532/4,533 train/valid/test 行；3,686 item 对 3,670 唯一 SID。Office 38,924/4,866/4,866；3,459 对 3,444。未做时间戳/用户级全量核查。 |
-| 资源可行性 | A800 环境已验证 | 用户已租 A800-SXM4-80GB，Python 3.12.3 / torch 2.5.1+cu124；用户终端的项目导入、BF16 前向/反向已通过。尚无模型训练吞吐/峰值显存。 |
-| 模型权重/大型数据下载 | 权重文件已落盘 | 用户确认 `/root/autodl-tmp/models/Qwen2.5/model.safetensors` 为 2.9GiB；版本 `8faed761d45a263340a0528343f099c05c9a4323`。Xet 401 后改普通 HTTP 下载；未下载额外大型数据。模型实际加载/训练仍待验证。 |
-| 训练/评估 | 正式 E1 待服务器启动 | 用户授权直接全量训练；新增 `scripts/sft_full_single_gpu.sh`，配置见 `SFT_BASELINE_RUN.md`。E1–E4 结果仍为空。 |
+| 资源可行性 | A800 SFT 已实测 | A800-SXM4-80GB；全量 SFT 训练加保存 11,263.16 秒，CUDA peak allocated/reserved 14.42/16.35 GiB。该结果不代表 GRPO 的显存需求。 |
+| 模型权重/大型数据下载 | 已用于 SFT | 基座路径 `/root/autodl-tmp/models/Qwen2.5`；版本 `8faed761d45a263340a0528343f099c05c9a4323`。用户已提供训练正常结束与最终 2.9GiB 权重文件的证据；最终模型重载仍待验证。 |
+| 训练/评估 | E1 训练完成，推荐评估待做 | 用户日志确认 3 epochs、3744 steps、COMPLETED；train loss 1.0992、best valid loss 2.8872、best checkpoint 3572。HR/NDCG 仍为空。详见 `experiments/E1_SFT_20261020.md`。 |
 | 本地学习入口 | 已准备 | 新增 `docs/LEARNING_RUNBOOK.md`、只读 `scripts/inspect_data.py` 与独立 `scripts/sft_smoke_single_gpu.sh`；数据检查已在本地执行，shell/Python 语法已检查；SFT 脚本尚未在 GPU 上运行。 |
+| 训练产物本地备份 | 已下载并静态核验 | `/Users/andy/研二/rec模型权重/e1_sft_backup.tar` 为 2.908 GiB，含最终模型/tokenizer/运行配置/日志。数据哈希与本地一致，560 个 SID token 完整，模型头部和词表大小匹配；尚未做 GPU 重载和推荐评估。 |
+| E1 推荐评估入口 | 已准备，GPU 运行待验证 | 用户已提供新实例 RTX 4090 24GB / Python 3.12.3 / torch 2.5.1+cu124。新增固定 valid Top-10 启动脚本、完整 invalid/duplicate/collision 统计及环境清单；手算指标单元测试通过。详见 `EVALUATION_RUN.md`，尚无真实 HR/NDCG。 |
 
 ## 已发现问题（按优先级）
 
@@ -46,4 +48,4 @@ zero-var/all-zero 组率、KL、奖励分布：
 
 ## 下一行动与资源门槛
 
-用户已租 A800 80GB 并授权直接启动全量 SFT。下一步同步代码后在服务器运行 `scripts/sft_full_single_gpu.sh`；当前助手未连接用户服务器、没有代启动训练。真实耗时、显存及推荐指标待用户日志。扩大模型/额外大型数据下载另行明确资源需求。
+全量 SFT 已由用户在服务器运行完毕，助手根据用户粘贴的日志记录了真实耗时、显存和 loss，未直接连接服务器。当前实例关机后无 GPU 库存；先用无卡模式核查/备份产物，再迁移到可用 GPU 做模型重载及 valid Top-10 检查。不能从训练 loss 推断推荐效果；GRPO 修复与 E2–E4 尚未开展。

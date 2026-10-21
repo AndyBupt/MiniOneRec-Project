@@ -9,6 +9,7 @@ from data import  EvalD3Dataset, EvalSidDataset
 from LogitProcessor import ConstrainedLogitsProcessor
 from accelerate import Accelerator
 import random
+import time
 import bitsandbytes as bnb
 
 
@@ -48,7 +49,16 @@ def main(
     length_penalty: float=0.0,
     max_new_tokens: int = 256,
     num_beams: int = 50,
+    sample: int = -1,
+    max_prompt_length: int = 512,
 ):
+    if batch_size < 1 or num_beams < 2 or max_prompt_length < 4:
+        raise ValueError("Require batch_size >= 1, num_beams >= 2, max_prompt_length >= 4")
+    if sample == 0 or sample < -1:
+        raise ValueError("sample must be -1 (all rows) or a positive integer")
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
+    evaluation_start = time.perf_counter()
     random.seed(seed)
     set_seed(seed)
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -70,6 +80,13 @@ def main(
 
 
     tokenizer = AutoTokenizer.from_pretrained(base_model)
+    embedding_rows = model.get_input_embeddings().weight.shape[0]
+    if len(tokenizer) != embedding_rows:
+        raise ValueError(f"Tokenizer/model vocabulary mismatch: {len(tokenizer)} vs {embedding_rows}")
+    if model.config.tie_word_embeddings:
+        if model.get_input_embeddings().weight.data_ptr() != model.get_output_embeddings().weight.data_ptr():
+            raise ValueError("Expected tied input/output weights but loaded model does not share them")
+    print(f"Model reload passed: vocab={embedding_rows}, tied_embeddings={model.config.tie_word_embeddings}")
     
     # Create prefixID for semantic IDs (existing functionality)
     if base_model.lower().find("llama") > -1:
@@ -82,6 +99,10 @@ def main(
         prefix_index = 4
     else:
         prefix_index = 3
+
+    response_prefix = tokenizer.encode("### Response:\n", add_special_tokens=False)
+    if len(response_prefix) != prefix_index:
+        raise ValueError("Upstream constrained decoder prefix length does not match this tokenizer")
     
     # Build hash_dict for semantic IDs (existing functionality)
     hash_dict = dict()
@@ -140,9 +161,15 @@ def main(
     tokenizer.padding_side = "left"
     
     # val_dataset = EvalD3Dataset(train_file=test_data_path, tokenizer=tokenizer, max_len=2560, category=category, test=True, K=K, seed=seed)
-    val_dataset = EvalSidDataset(train_file=test_data_path, tokenizer=tokenizer, max_len=2560, category=category, test=True, K=K, seed=seed)
+    val_dataset = EvalSidDataset(train_file=test_data_path, tokenizer=tokenizer, max_len=max_prompt_length, category=category, test=True, K=K, seed=seed, sample=sample)
         
     encodings = [val_dataset[i] for i in range(len(val_dataset))]
+    truncated_prompts = sum(len(encoding["input_ids"]) > max_prompt_length for encoding in encodings)
+    for encoding in encodings:
+        encoding["input_ids"] = encoding["input_ids"][-max_prompt_length:]
+        encoding["attention_mask"] = encoding["attention_mask"][-max_prompt_length:]
+        if encoding["input_ids"][-prefix_index:] != response_prefix:
+            raise ValueError("Evaluation prompt does not end with expected response prefix")
     # encodings = [val_dataset[i] for i in indexes]
     test_data = val_dataset.get_all()
 
@@ -237,6 +264,10 @@ def main(
        
     for i, test in enumerate(test_data):
         test["predict"] = outputs[i]
+        row = val_dataset.data.iloc[i]
+        test["source_row_index"] = int(val_dataset.data.index[i])
+        test["user_id"] = str(row["user_id"])
+        test["target_item_id"] = str(row["item_id"])
   
 
     for i in range(len(test_data)):
@@ -244,6 +275,32 @@ def main(
             test_data[i].pop('dedup')  
     with open(result_json_data, 'w') as f:
         json.dump(test_data, f, indent=4)
+
+    run_metrics = {
+        "model": base_model,
+        "data": test_data_path,
+        "queries": len(test_data),
+        "sample": sample,
+        "seed": seed,
+        "batch_size": batch_size,
+        "num_beams": num_beams,
+        "max_new_tokens": max_new_tokens,
+        "length_penalty": length_penalty,
+        "max_prompt_length": max_prompt_length,
+        "truncated_prompts": truncated_prompts,
+        "do_sample": False,
+        "tokenizer_vocab": len(tokenizer),
+        "tie_word_embeddings": model.config.tie_word_embeddings,
+        "total_evaluation_seconds": time.perf_counter() - evaluation_start,
+    }
+    if torch.cuda.is_available():
+        run_metrics.update({
+            "gpu_name": torch.cuda.get_device_name(),
+            "peak_allocated_gib": torch.cuda.max_memory_allocated() / 2**30,
+            "peak_reserved_gib": torch.cuda.max_memory_reserved() / 2**30,
+        })
+    with open(result_json_data + ".run.json", "w") as handle:
+        json.dump(run_metrics, handle, indent=2)
 
 if __name__ == '__main__':
     fire.Fire(main)

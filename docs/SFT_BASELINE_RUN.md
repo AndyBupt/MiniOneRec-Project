@@ -1,6 +1,6 @@
 # First full-data SFT run (E1 candidate)
 
-Prepared 2026-10-20. This is a full-data run, not the 128-sample smoke run. No formal training results have been observed yet. Commands below run on the user's AutoDL server, not on the local Mac.
+Prepared 2026-10-20. This is a full-data run, not the 128-sample smoke run. Update 2026-10-21: the user's first run completed; actual metrics are recorded in `experiments/E1_SFT_20261020.md`. Commands below run on the user's AutoDL server, not on the local Mac.
 
 ## Environment confirmed by user
 
