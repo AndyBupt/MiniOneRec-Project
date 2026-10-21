@@ -1,0 +1,110 @@
+{
+  "protocol": "full valid; train-target SID counts only; descending frequency and lexicographic tie break; Top-10; no history exclusion",
+  "train_rows": 36259,
+  "valid_rows": 4532,
+  "input_sha256": {
+    "train": "da5f2af4f5047e18023dd4792f65a48bd7c8eab90447dd682fb48ca255d25f8c",
+    "valid": "12bbb02bced0bd754a8b4e0f9ca4086416e30d12b0b73a2c95e7b195dd67385a",
+    "catalog": "bdc51fd9636e361db095c84de4e2650b3dd9606812c92e7a01f3b77c5c1a84f7"
+  },
+  "script_sha256": "73849ad44f3fad909d4e7e4668189573381ecacc9b3dfdafe6209ecc87d7f834",
+  "scorer_sha256": "47ac46d9be5110565a6807759d48c8bbb66f50d83f025859b34fcb02835ad8c3",
+  "valid_target_equals_last_history_sid": 269,
+  "valid_target_equals_last_history_item": 205,
+  "train_popular_top10": [
+    {
+      "sid": "<a_107><b_93><c_0>",
+      "train_target_count": 1048
+    },
+    {
+      "sid": "<a_210><b_156><c_39>",
+      "train_target_count": 502
+    },
+    {
+      "sid": "<a_67><b_56><c_2>",
+      "train_target_count": 199
+    },
+    {
+      "sid": "<a_67><b_56><c_0>",
+      "train_target_count": 178
+    },
+    {
+      "sid": "<a_202><b_62><c_182>",
+      "train_target_count": 148
+    },
+    {
+      "sid": "<a_104><b_186><c_66>",
+      "train_target_count": 133
+    },
+    {
+      "sid": "<a_94><b_35><c_31>",
+      "train_target_count": 121
+    },
+    {
+      "sid": "<a_107><b_90><c_68>",
+      "train_target_count": 109
+    },
+    {
+      "sid": "<a_210><b_12><c_10>",
+      "train_target_count": 106
+    },
+    {
+      "sid": "<a_107><b_90><c_50>",
+      "train_target_count": 105
+    }
+  ],
+  "methods": {
+    "train_target_popularity": {
+      "queries": 4532,
+      "metric_unit": "SID exact match; raw ranks retained, no deduplication or history filtering",
+      "catalog_items": 3686,
+      "catalog_unique_sids": 3670,
+      "target_collision_queries": 238,
+      "target_collision_query_fraction": 0.052515445719329215,
+      "invalid_definition": "out-of-catalog or missing slots divided by queries*K",
+      "HR@5": 0.04677846425419241,
+      "NDCG@5": 0.04216546754358137,
+      "invalid_sid@5": 0.0,
+      "missing_slots@5": 0.0,
+      "duplicate_slots@5": 0.0,
+      "HR@10": 0.05670785525154457,
+      "NDCG@10": 0.045369349827165784,
+      "invalid_sid@10": 0.0,
+      "missing_slots@10": 0.0,
+      "duplicate_slots@10": 0.0,
+      "unique_target_sid_subset": {
+        "queries": 4294,
+        "HR@5": 0.012575687005123428,
+        "NDCG@5": 0.007707009526667687,
+        "HR@10": 0.02305542617605962,
+        "NDCG@10": 0.011088470753776326
+      }
+    },
+    "last_item_then_popularity": {
+      "queries": 4532,
+      "metric_unit": "SID exact match; raw ranks retained, no deduplication or history filtering",
+      "catalog_items": 3686,
+      "catalog_unique_sids": 3670,
+      "target_collision_queries": 238,
+      "target_collision_query_fraction": 0.052515445719329215,
+      "invalid_definition": "out-of-catalog or missing slots divided by queries*K",
+      "HR@5": 0.07524271844660194,
+      "NDCG@5": 0.06894593908949097,
+      "invalid_sid@5": 0.0,
+      "missing_slots@5": 0.0,
+      "duplicate_slots@5": 0.0,
+      "HR@10": 0.08296557811120918,
+      "NDCG@10": 0.07140705166148271,
+      "invalid_sid@10": 0.0,
+      "missing_slots@10": 0.0,
+      "duplicate_slots@10": 0.0,
+      "unique_target_sid_subset": {
+        "queries": 4294,
+        "HR@5": 0.03889147647880764,
+        "NDCG@5": 0.03714485328365161,
+        "HR@10": 0.04704238472286912,
+        "NDCG@10": 0.03974237591436111
+      }
+    }
+  }
+}

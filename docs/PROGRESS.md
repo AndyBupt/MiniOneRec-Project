@@ -12,7 +12,8 @@
 | 训练/评估 | E1 训练完成，推荐评估待做 | 用户日志确认 3 epochs、3744 steps、COMPLETED；train loss 1.0992、best valid loss 2.8872、best checkpoint 3572。HR/NDCG 仍为空。详见 `experiments/E1_SFT_20261020.md`。 |
 | 本地学习入口 | 已准备 | 新增 `docs/LEARNING_RUNBOOK.md`、只读 `scripts/inspect_data.py` 与独立 `scripts/sft_smoke_single_gpu.sh`；数据检查已在本地执行，shell/Python 语法已检查；SFT 脚本尚未在 GPU 上运行。 |
 | 训练产物本地备份 | 已下载并静态核验 | `/Users/andy/研二/rec模型权重/e1_sft_backup.tar` 为 2.908 GiB，含最终模型/tokenizer/运行配置/日志。数据哈希与本地一致，560 个 SID token 完整，模型头部和词表大小匹配；尚未做 GPU 重载和推荐评估。 |
-| E1 推荐评估入口 | 已准备，GPU 运行待验证 | 用户已提供新实例 RTX 4090 24GB / Python 3.12.3 / torch 2.5.1+cu124。新增固定 valid Top-10 启动脚本、完整 invalid/duplicate/collision 统计及环境清单；手算指标单元测试通过。详见 `EVALUATION_RUN.md`，尚无真实 HR/NDCG。 |
+| E1 推荐评估 | 完整 valid 已完成 | 4532 条 SID HR@5/10=0.038173/0.055384，NDCG@5/10=0.035078/0.040476；invalid/missing/duplicate 均 0。评估 548.58 秒，A800 CUDA allocated/reserved 3.00/3.10 GiB。238 条目标 SID 碰撞；详见 `experiments/E1_VALID_20261021.md`。 |
+| 简单参照与诊断 | CPU 参照已补算，预测明细待取 | 训练集热门 SID HR@5/10=0.046778/0.056708；最近交互 SID+热门补齐为 0.075243/0.082966。当前 SFT 尚未超过参照；先检查预测集中度、样本对齐和重复交互分桶，再决定后续训练。 |
 
 ## 已发现问题（按优先级）
 
@@ -48,4 +49,4 @@ zero-var/all-zero 组率、KL、奖励分布：
 
 ## 下一行动与资源门槛
 
-全量 SFT 已由用户在服务器运行完毕，助手根据用户粘贴的日志记录了真实耗时、显存和 loss，未直接连接服务器。当前实例关机后无 GPU 库存；先用无卡模式核查/备份产物，再迁移到可用 GPU 做模型重载及 valid Top-10 检查。不能从训练 loss 推断推荐效果；GRPO 修复与 E2–E4 尚未开展。
+用户已在克隆的 A800 实例完成 full-valid 评估并下载指标。助手读取本地结果、记录真实 loss/推荐指标/耗时/显存并在 CPU 上补算两个参照，未直接连接服务器。下一步读取完整 predictions.json 做案例与分桶诊断。Test、GRPO 修复及 E2–E4 尚未开展；不宣称现有 SFT 已取得算法收益。
