@@ -4,12 +4,16 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 : "${CHECKPOINT_PATH:?Set CHECKPOINT_PATH to the trained final_checkpoint directory.}"
-for filename in model.safetensors config.json tokenizer.json tokenizer_config.json; do
+for filename in config.json tokenizer.json tokenizer_config.json; do
   if [[ ! -f "$CHECKPOINT_PATH/$filename" ]]; then
     echo "Missing checkpoint file: $CHECKPOINT_PATH/$filename" >&2
     exit 1
   fi
 done
+if [[ ! -f "$CHECKPOINT_PATH/model.safetensors" && ! -f "$CHECKPOINT_PATH/model.safetensors.index.json" ]]; then
+  echo "Missing safetensors weights or shard index: $CHECKPOINT_PATH"
+  exit 1
+fi
 category="${CATEGORY:-Industrial_and_Scientific}"
 sample="${EVAL_SAMPLE:-32}"
 run_id="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
@@ -26,11 +30,27 @@ export WANDB_MODE=disabled
 python -m pip freeze > "$output_dir/environment.txt"
 git rev-parse HEAD > "$output_dir/code_commit.txt"
 git diff HEAD -- evaluate.py scripts/score_recommendations.py scripts/eval_valid_single_gpu.sh > "$output_dir/code_patch.diff"
-sha256sum \
-  "data/Amazon/valid/${category}_5_2016-10-2018-11.csv" \
-  "data/Amazon/info/${category}_5_2016-10-2018-11.txt" \
-  "$CHECKPOINT_PATH/model.safetensors" \
-  "$CHECKPOINT_PATH/tokenizer.json" > "$output_dir/input_sha256.txt"
+python - "$CHECKPOINT_PATH" "$category" > "$output_dir/input_sha256.txt" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+checkpoint, category = Path(sys.argv[1]), sys.argv[2]
+files = [Path(f"data/Amazon/valid/{category}_5_2016-10-2018-11.csv"),
+         Path(f"data/Amazon/info/{category}_5_2016-10-2018-11.txt"), checkpoint / "tokenizer.json"]
+index = checkpoint / "model.safetensors.index.json"
+if index.exists():
+    shards = sorted(set(json.loads(index.read_text())["weight_map"].values()))
+    files += [index] + [checkpoint / name for name in shards]
+else:
+    files.append(checkpoint / "model.safetensors")
+for path in files:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(8 * 1024 * 1024), b""):
+            digest.update(block)
+    print(digest.hexdigest(), path)
+PY
 echo "Evaluation output: $output_dir"
 python -u evaluate.py \
   --base_model "$CHECKPOINT_PATH" \

@@ -24,8 +24,47 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from data import D3Dataset, SFTData, SidSFTDataset, SidItemFeatDataset, FusionSeqRecDataset, PreferenceSFTDataset, UserPreference2sidSFTDataset, TitleHistory2SidSFTDataset
 import random
 import time
+import hashlib
+from collections import Counter
 from datasets import Dataset as HFDataset
 from torch.utils.data import ConcatDataset
+
+
+class SFTResourceProfile(transformers.TrainerCallback):
+    """Optional observation and early resource gate; does not change the schedule."""
+
+    def __init__(self, output_dir, step, max_memory_gib, max_seconds):
+        self.output_dir = output_dir
+        self.step = step
+        self.max_memory_gib = max_memory_gib
+        self.max_seconds = max_seconds
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        torch.cuda.synchronize()
+        self.start = time.perf_counter()
+
+    def on_step_end(self, args, state, control, **kwargs):
+        if state.global_step != self.step:
+            return
+        torch.cuda.synchronize()
+        elapsed = time.perf_counter() - self.start
+        optimizer = kwargs["optimizer"]
+        report = {
+            "steps": state.global_step, "planned_steps": state.max_steps,
+            "seconds": elapsed, "estimated_training_seconds": elapsed / state.global_step * state.max_steps,
+            "peak_allocated_gib": torch.cuda.max_memory_allocated() / 2**30,
+            "peak_reserved_gib": torch.cuda.max_memory_reserved() / 2**30,
+            "parameter_dtypes": dict(Counter(str(p.dtype) for p in kwargs["model"].parameters())),
+            "optimizer_state_dtypes": dict(Counter(str(v.dtype) for item in optimizer.state.values()
+                                                    for key, v in item.items() if key != "step" and torch.is_tensor(v))),
+        }
+        report["passed"] = (report["peak_reserved_gib"] <= self.max_memory_gib
+                            and report["estimated_training_seconds"] <= self.max_seconds)
+        with open(os.path.join(self.output_dir, "profile_step10.json"), "w") as handle:
+            json.dump(report, handle, indent=2)
+        print("RESOURCE_PROFILE", json.dumps(report), flush=True)
+        if not report["passed"]:
+            raise RuntimeError("Resource profile exceeded configured limits; inspect profile_step10.json before retrying")
 
 
 class TokenExtender:
@@ -116,7 +155,14 @@ def train(
     train_from_scratch: bool = False,
     sid_index_path: str = "",
     item_meta_path: str = "",
+    parameter_dtype: str = "bfloat16",
+    save_only_model: bool = False,
+    profile_steps: int = 0,
+    max_profile_memory_gib: float = 64,
+    max_profile_seconds: float = 18000,
 ):
+    if parameter_dtype not in ("bfloat16", "float32"):
+        raise ValueError("parameter_dtype must be bfloat16 or float32")
     set_seed(seed)
     os.environ['WANDB_PROJECT'] = wandb_project
     category_dict = {"Industrial_and_Scientific": "industrial and scientific items", "Office_Products": "office products", "Toys_and_Games": "toys and games", "Sports": "sports and outdoors", "Books": "books"}
@@ -161,6 +207,15 @@ def train(
             print(f"Adding {len(new_tokens)} new tokens to tokenizer")
             tokenizer.add_tokens(new_tokens)
             model.resize_token_embeddings(len(tokenizer))
+
+    # Keep the original BF16 load/resize initialization identical before promotion.
+    new_embedding_values = model.get_input_embeddings().weight.detach()[original_vocab_size:]
+    initialization_sha256 = hashlib.sha256(
+        new_embedding_values.to(device="cpu", dtype=torch.float32).contiguous().numpy().tobytes()
+    ).hexdigest()
+    del new_embedding_values
+    if parameter_dtype == "float32":
+        model.to(dtype=torch.float32)
 
     # Freeze LLM parameters if required
     if freeze_LLM:
@@ -253,6 +308,7 @@ def train(
             save_steps=eval_step,
             output_dir=output_dir,
             save_total_limit=1,
+            save_only_model=save_only_model,
             load_best_model_at_end=True,
             ddp_find_unused_parameters=False if ddp else None,
             group_by_length=group_by_length,
@@ -261,7 +317,9 @@ def train(
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
         ),
-        callbacks = [EarlyStoppingCallback(early_stopping_patience=3)],
+        callbacks = [EarlyStoppingCallback(early_stopping_patience=3)] + (
+            [SFTResourceProfile(output_dir, profile_steps, max_profile_memory_gib, max_profile_seconds)]
+            if profile_steps > 0 else []),
         # optimizers=(optimizer, lr_scheduler) 
     )
     model.config.use_cache = False
@@ -287,6 +345,12 @@ def train(
             "warmup_ratio": warmup_ratio,
             "freeze_LLM": freeze_LLM,
             "train_from_scratch": train_from_scratch,
+            "parameter_dtype": parameter_dtype,
+            "actual_parameter_dtypes": dict(Counter(str(p.dtype) for p in model.parameters())),
+            "new_embedding_initialization_sha256": initialization_sha256,
+            "initialization": "Original BF16 load and resize; optional FP32 promotion after resize",
+            "save_only_model": save_only_model,
+            "profile_steps": profile_steps,
             "train_samples": len(hf_train_dataset),
             "valid_samples": len(hf_val_dataset),
             "torch": torch.__version__,

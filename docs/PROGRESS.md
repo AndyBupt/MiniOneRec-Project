@@ -75,3 +75,8 @@ zero-var/all-zero 组率、KL、奖励分布：
 ## 2026-10-21 tiny-fit 对照结果
 
 已收到用户 `comparison.json` 并保存原始副本。两组报告的起点、样本哈希和训练超参一致；同一128条train样本的初始/BF16/FP32 HR@10为5/128、34/128、44/128，候选不同SID数24/117/133。最终目标NLL为BF16 2.1485、FP32 1.9970；FP32训练149.07秒、allocated28.83GiB，BF16为131.78秒、14.41GiB。支持参数精度配置影响小样本拟合，不代表完整valid收益或唯一根因。完整三任务FP32参数SFT对照尚未启动；详见 `experiments/TINY_SFT128_20261021.md`，总复盘已更新。
+
+
+## 2026-10-21 完整FP32参数SFT对照脚本
+
+已交付 `scripts/sft_fp32_full_single_gpu.sh`：原Base重新初始化、原三任务与原超参，扩SID后再提升参数到FP32；第10步资源profile、模型单独保存、自动完整valid评估及不含权重的review_bundle。增加eval对FP32分片权重的哈希支持。至少35GiB空闲磁盘；此轮不保存optimizer，不能精确断点续训。语法、profile资源门槛及单文件/分片哈希CPU测试通过，实际GPU训练尚未启动。详见 `SFT_FP32_FULL_RUN.md`。

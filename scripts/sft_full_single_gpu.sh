@@ -59,6 +59,9 @@ python -u sft.py \
   --warmup_ratio 0.03 \
   --cutoff_len 512 \
   --seed 42 \
-  --freeze_LLM False
+  --freeze_LLM False \
+  --parameter_dtype "${PARAMETER_DTYPE:-bfloat16}" \
+  --save_only_model "${SAVE_ONLY_MODEL:-False}" \
+  --profile_steps "${PROFILE_STEPS:-0}"
 
 echo "COMPLETED: $output_dir/final_checkpoint"
