@@ -1,0 +1,90 @@
+{
+  "base": "/root/autodl-tmp/models/Qwen2.5",
+  "checkpoint": "/root/autodl-tmp/MiniOneRec-Project/output/sft_e1_Industrial_and_Scientific_20261020T101253Z/final_checkpoint",
+  "torch_version": "2.5.1+cu124",
+  "source_sha256": {
+    "evaluate.py": "e45a22eeacc717528dad8c1b77055bd406b3ea616983a972fc78d0612b2f3c3b",
+    "LogitProcessor.py": "13ab33ff0ed3f769370478a86624499ccc0f8813de9d63e3dc4e2fa25ec59eb8",
+    "sft.py": "850374722bb37af7792d21473f21bcaa730a5e7e3d1487725bf3ad9999fc73d1",
+    "scripts/diagnose_sft.py": "b0254ea4119ebfcd7f0b4fbe38fda70ee32ef1601bf336aa10e9fde0d643f3ad"
+  },
+  "decoder": {
+    "error": "IndexError: only integers, slices (`:`), ellipsis (`...`), None and long or byte Variables are valid indices (got set)"
+  },
+  "weight_updates": {
+    "tensors": [
+      {
+        "name": "model.layers.0.self_attn.q_proj.weight",
+        "shape": [
+          1536,
+          1536
+        ],
+        "sample_row_starts": [
+          0,
+          760,
+          1520
+        ],
+        "sample_elements": 73728,
+        "base_dtype": "torch.bfloat16",
+        "sft_dtype": "torch.bfloat16",
+        "unchanged_fraction": 0.8415663242340088,
+        "mean_absolute_delta": 5.3587147704092786e-05,
+        "max_absolute_delta": 0.0027008056640625,
+        "relative_rms_delta": 0.00717194564640522
+      },
+      {
+        "name": "model.layers.10.mlp.down_proj.weight",
+        "shape": [
+          1536,
+          8960
+        ],
+        "sample_row_starts": [
+          0,
+          760,
+          1520
+        ],
+        "sample_elements": 430080,
+        "base_dtype": "torch.bfloat16",
+        "sft_dtype": "torch.bfloat16",
+        "unchanged_fraction": 0.8096586465835571,
+        "mean_absolute_delta": 8.622962923254818e-05,
+        "max_absolute_delta": 0.004398345947265625,
+        "relative_rms_delta": 0.011012841947376728
+      },
+      {
+        "name": "model.layers.27.self_attn.o_proj.weight",
+        "shape": [
+          1536,
+          1536
+        ],
+        "sample_row_starts": [
+          0,
+          760,
+          1520
+        ],
+        "sample_elements": 73728,
+        "base_dtype": "torch.bfloat16",
+        "sft_dtype": "torch.bfloat16",
+        "unchanged_fraction": 0.7942979335784912,
+        "mean_absolute_delta": 0.00013667438179254532,
+        "max_absolute_delta": 0.0057525634765625,
+        "relative_rms_delta": 0.014722432941198349
+      },
+      {
+        "name": "model.norm.weight",
+        "shape": [
+          1536
+        ],
+        "sample_row_starts": "all",
+        "sample_elements": 1536,
+        "base_dtype": "torch.bfloat16",
+        "sft_dtype": "torch.bfloat16",
+        "unchanged_fraction": 1.0,
+        "mean_absolute_delta": 0.0,
+        "max_absolute_delta": 0.0,
+        "relative_rms_delta": 0.0
+      }
+    ],
+    "scope": "Selected backbone slices, not all parameters or new SID embeddings. Small/zero changes alone do not prove numerical rounding; requires interpretation."
+  }
+}

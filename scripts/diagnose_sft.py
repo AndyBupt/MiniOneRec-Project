@@ -25,9 +25,11 @@ def source_constraints(root, prefix_ids, tokenizer, prefix_index):
     end = next(i for i, node in enumerate(main.body) if assigns(node, "hash_dict_title"))
     callback = next(node for node in main.body if isinstance(node, ast.FunctionDef)
                     and node.name == "prefix_allowed_tokens_fn_semantic")
+    conversion = next(node for node in main.body if isinstance(node, ast.For)
+                      and ast.unparse(node.iter) == "hash_dict.keys()")
     namespace = {"prefixID": [list(ids) for ids in prefix_ids], "tokenizer": tokenizer,
                  "prefix_index": prefix_index}
-    code = ast.Module(body=[get_hash, *main.body[start:end], callback], type_ignores=[])
+    code = ast.Module(body=[get_hash, *main.body[start:end], conversion, callback], type_ignores=[])
     exec(compile(code, str(root / "evaluate.py"), "exec"), namespace)
     return namespace["prefix_allowed_tokens_fn_semantic"]
 
