@@ -60,3 +60,8 @@ zero-var/all-zero 组率、KL、奖励分布：
 ## 2026-10-21 train-256 拟合诊断
 
 用户已运行并提供 256 条 train 抽样结果：逐条对齐和指标复算通过，HR@5/10=14/256、16/256，NDCG@5/10=0.041444/0.044048。所有 Top-10 合计仅 24 个 SID，Top-1 仅 4 个，最常见占 67.58%。候选集中并非只出现在 valid；下一步设计固定小样本的拟合与参数精度对照，尚未启动。详见 `experiments/E1_TRAIN256_20261021.md`。
+
+
+## 2026-10-21 tiny-fit 脚本交付
+
+已准备 `scripts/tiny_sft_diagnostic.py` 与 `scripts/tiny_sft_diagnostic_single_gpu.sh`，从同一 E1 独立运行 BF16/FP32 参数组；128 条无冲突历史抽样实际对应 125 个目标 SID，仅 next-SID 任务。含初始生成评估、目标 mask/prompt 审计、teacher-forced 分层指标、第10步资源门槛、独立 BF16 导出和共同生成评估。实际数据抽样、语法与3项 CPU 单测已通过；GPU 训练待用户服务器执行，未产生新效果结论。完整说明见 `TINY_SFT_DIAGNOSTIC.md`。
