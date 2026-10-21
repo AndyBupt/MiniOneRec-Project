@@ -1,0 +1,119 @@
+{
+  "input_sha256": {
+    "predictions": "4d4c781328a7bf54ce67704300c6cb5bcebe8a8d65430684871e6af928b8eb0a",
+    "valid": "da5f2af4f5047e18023dd4792f65a48bd7c8eab90447dd682fb48ca255d25f8c",
+    "catalog": "bdc51fd9636e361db095c84de4e2650b3dd9606812c92e7a01f3b77c5c1a84f7"
+  },
+  "alignment": {
+    "matched_queries": 256,
+    "full_valid_coverage": false
+  },
+  "metrics": {
+    "queries": 256,
+    "metric_unit": "SID exact match; raw ranks retained, no deduplication or history filtering",
+    "catalog_items": 3686,
+    "catalog_unique_sids": 3670,
+    "target_collision_queries": 9,
+    "target_collision_query_fraction": 0.03515625,
+    "invalid_definition": "out-of-catalog or missing slots divided by queries*K",
+    "HR@5": 0.0546875,
+    "NDCG@5": 0.0414435899981567,
+    "invalid_sid@5": 0.0,
+    "missing_slots@5": 0.0,
+    "duplicate_slots@5": 0.0,
+    "HR@10": 0.0625,
+    "NDCG@10": 0.04404775666482336,
+    "invalid_sid@10": 0.0,
+    "missing_slots@10": 0.0,
+    "duplicate_slots@10": 0.0,
+    "unique_target_sid_subset": {
+      "queries": 247,
+      "HR@5": 0.02834008097165992,
+      "NDCG@5": 0.01691855255649685,
+      "HR@10": 0.03643724696356275,
+      "NDCG@10": 0.019617607887131128
+    }
+  },
+  "concentration": {
+    "unique_sids_in_top10": 24,
+    "catalog_sid_coverage_at10": 0.006539509536784741,
+    "unique_top1_sids": 4,
+    "unique_ordered_top10_lists": 77,
+    "top1_frequencies": [
+      {
+        "sid": "<a_107><b_93><c_0>",
+        "queries": 173,
+        "fraction": 0.67578125
+      },
+      {
+        "sid": "<a_223><b_198><c_2>",
+        "queries": 40,
+        "fraction": 0.15625
+      },
+      {
+        "sid": "<a_251><b_198><c_0>",
+        "queries": 30,
+        "fraction": 0.1171875
+      },
+      {
+        "sid": "<a_67><b_56><c_0>",
+        "queries": 13,
+        "fraction": 0.05078125
+      }
+    ]
+  },
+  "cohorts": {
+    "seen_raw_item_in_history": {
+      "queries": 19,
+      "metric_unit": "SID exact match; raw ranks retained, no deduplication or history filtering",
+      "catalog_items": 3686,
+      "catalog_unique_sids": 3670,
+      "target_collision_queries": 3,
+      "target_collision_query_fraction": 0.15789473684210525,
+      "invalid_definition": "out-of-catalog or missing slots divided by queries*K",
+      "HR@5": 0.2631578947368421,
+      "NDCG@5": 0.20322911137614663,
+      "invalid_sid@5": 0.0,
+      "missing_slots@5": 0.0,
+      "duplicate_slots@5": 0.0,
+      "HR@10": 0.2631578947368421,
+      "NDCG@10": 0.20322911137614663,
+      "invalid_sid@10": 0.0,
+      "missing_slots@10": 0.0,
+      "duplicate_slots@10": 0.0,
+      "unique_target_sid_subset": {
+        "queries": 16,
+        "HR@5": 0.125,
+        "NDCG@5": 0.08941728487958707,
+        "HR@10": 0.125,
+        "NDCG@10": 0.08941728487958707
+      }
+    },
+    "new_raw_item_in_history": {
+      "queries": 237,
+      "metric_unit": "SID exact match; raw ranks retained, no deduplication or history filtering",
+      "catalog_items": 3686,
+      "catalog_unique_sids": 3670,
+      "target_collision_queries": 6,
+      "target_collision_query_fraction": 0.02531645569620253,
+      "invalid_definition": "out-of-catalog or missing slots divided by queries*K",
+      "HR@5": 0.0379746835443038,
+      "NDCG@5": 0.028473442714689146,
+      "invalid_sid@5": 0.0,
+      "missing_slots@5": 0.0,
+      "duplicate_slots@5": 0.0,
+      "HR@10": 0.046413502109704644,
+      "NDCG@10": 0.03128638223648943,
+      "invalid_sid@10": 0.0,
+      "missing_slots@10": 0.0,
+      "duplicate_slots@10": 0.0,
+      "unique_target_sid_subset": {
+        "queries": 231,
+        "HR@5": 0.021645021645021644,
+        "NDCG@5": 0.011896995339313106,
+        "HR@10": 0.030303030303030304,
+        "NDCG@10": 0.014782998225315994
+      }
+    }
+  }
+}

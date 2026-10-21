@@ -1,0 +1,20 @@
+{
+  "model": "/root/autodl-tmp/MiniOneRec-Project/output/sft_e1_Industrial_and_Scientific_20261020T101253Z/final_checkpoint",
+  "data": "data/Amazon/train/Industrial_and_Scientific_5_2016-10-2018-11.csv",
+  "queries": 256,
+  "sample": 256,
+  "seed": 42,
+  "batch_size": 1,
+  "num_beams": 10,
+  "max_new_tokens": 16,
+  "length_penalty": 0.0,
+  "max_prompt_length": 512,
+  "truncated_prompts": 0,
+  "do_sample": false,
+  "tokenizer_vocab": 152225,
+  "tie_word_embeddings": true,
+  "total_evaluation_seconds": 35.0577071942389,
+  "gpu_name": "NVIDIA A800-SXM4-80GB",
+  "peak_allocated_gib": 2.996333122253418,
+  "peak_reserved_gib": 3.134765625
+}
