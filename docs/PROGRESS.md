@@ -65,3 +65,8 @@ zero-var/all-zero 组率、KL、奖励分布：
 ## 2026-10-21 tiny-fit 脚本交付
 
 已准备 `scripts/tiny_sft_diagnostic.py` 与 `scripts/tiny_sft_diagnostic_single_gpu.sh`，从同一 E1 独立运行 BF16/FP32 参数组；128 条无冲突历史抽样实际对应 125 个目标 SID，仅 next-SID 任务。含初始生成评估、目标 mask/prompt 审计、teacher-forced 分层指标、第10步资源门槛、独立 BF16 导出和共同生成评估。实际数据抽样、语法与3项 CPU 单测已通过；GPU 训练待用户服务器执行，未产生新效果结论。完整说明见 `TINY_SFT_DIAGNOSTIC.md`。
+
+
+## 2026-10-21 诊断与调优过程复盘
+
+新增 `SFT_TROUBLESHOOTING_LOG.md`，按证据串联首次 SFT、valid 评估、简单参照、SID 碰撞与预测集中、解码/参数检查、train-256 和 tiny-fit 对照，区分已确认事实与待验证假设。用户反馈 128 条短程对照正在运行；尚未收到 profile/comparison，未记录调优收益。
