@@ -13,7 +13,7 @@
 | 本地学习入口 | 已准备 | 新增 `docs/LEARNING_RUNBOOK.md`、只读 `scripts/inspect_data.py` 与独立 `scripts/sft_smoke_single_gpu.sh`；数据检查已在本地执行，shell/Python 语法已检查；SFT 脚本尚未在 GPU 上运行。 |
 | 训练产物本地备份 | 已下载并静态核验 | `/Users/andy/研二/rec模型权重/e1_sft_backup.tar` 为 2.908 GiB，含最终模型/tokenizer/运行配置/日志。数据哈希与本地一致，560 个 SID token 完整，模型头部和词表大小匹配；尚未做 GPU 重载和推荐评估。 |
 | E1 推荐评估 | 完整 valid 已完成 | 4532 条 SID HR@5/10=0.038173/0.055384，NDCG@5/10=0.035078/0.040476；invalid/missing/duplicate 均 0。评估 548.58 秒，A800 CUDA allocated/reserved 3.00/3.10 GiB。238 条目标 SID 碰撞；详见 `experiments/E1_VALID_20261021.md`。 |
-| 简单参照与诊断 | CPU 参照已补算，预测明细待取 | 训练集热门 SID HR@5/10=0.046778/0.056708；最近交互 SID+热门补齐为 0.075243/0.082966。当前 SFT 尚未超过参照；先检查预测集中度、样本对齐和重复交互分桶，再决定后续训练。 |
+| 简单参照与诊断 | 预测明细已审计 | 训练集热门 SID HR@5/10=0.046778/0.056708；最近交互 SID+热门补齐为 0.075243/0.082966。当前 SFT 尚未超过参照；4532 条样本与 CSV 对齐且指标复算一致。全体 Top-10 仅覆盖 28 个 SID，Top-1 仅 4 个。详见预测审计 JSON 和实验记录。 |
 
 ## 已发现问题（按优先级）
 
@@ -49,4 +49,4 @@ zero-var/all-zero 组率、KL、奖励分布：
 
 ## 下一行动与资源门槛
 
-用户已在克隆的 A800 实例完成 full-valid 评估并下载指标。助手读取本地结果、记录真实 loss/推荐指标/耗时/显存并在 CPU 上补算两个参照，未直接连接服务器。下一步读取完整 predictions.json 做案例与分桶诊断。Test、GRPO 修复及 E2–E4 尚未开展；不宣称现有 SFT 已取得算法收益。
+用户已在克隆的 A800 实例完成 full-valid 评估并下载指标。助手读取本地结果、记录真实 loss/推荐指标/耗时/显存并在 CPU 上补算两个参照，未直接连接服务器。完整 predictions.json 已做对齐、集中度和重复交互分桶诊断；下一步核查全部 SID 的解码可达性及基座到 SFT 的参数更新，再决定是否调整 SFT。Test、GRPO 修复及 E2–E4 尚未开展；不宣称现有 SFT 已取得算法收益。
