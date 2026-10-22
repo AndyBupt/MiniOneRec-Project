@@ -407,3 +407,10 @@ SFT 评估稳定后，再处理原版 GRPO 的样本目标映射等既知工程�
 **下一步：** 保留新旧权重与记录，备份新checkpoint（review bundle不含权重），修复GRPO目标映射和标签合并问题后做原版GRPO小规模profile。test继续保留。
 
 完整证据见[FP32完整实验记录](experiments/E1_FP32_FULL_20261022.md)、[预测审计](experiments/E1_FP32_VALID_20261022_audit.json)、[配对摘要](experiments/E1_FP32_VS_BF16_20261022_comparison.json)。
+
+
+## 13. 2026-10-22：进入RL准备阶段
+
+保留完整FP32参数SFT及评估协议作为当前RL起点，暂停继续扩展SFT超参；这属于SFT阶段性达标，不代表多seed/test或整个项目已完成。新权重备份下载尚待校验。
+
+已完成本地GRPO样本标签、验证隔离、列保留、额外LLM加载及解码processor状态的共同修复，并通过7项CPU回归与全量SID标签审计。奖励数值与Advantage/KL/policy loss未改变；尚无GRPO训练结果。详见[GRPO修复记录](GRPO_REPAIR.md)。

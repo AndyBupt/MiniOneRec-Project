@@ -9,6 +9,8 @@ from tqdm import tqdm
 import os
 import copy
 import torch.nn.functional as F
+import ast
+from grpo_utils import make_rl_record
 
 class Tokenizer:
     def __init__(self, tokenizer):
@@ -387,11 +389,9 @@ class SidDataset(CSVBaseDataset):
         self.prompt2history[prompt] = history["history_str"]
         self.history2target[history["history_str"]] = target_item
         
-        return {
-            "prompt": prompt,
-            "completion": target_item,
-
-        }
+        return make_rl_record(prompt, target_item,
+                              history_sids=history["history_str"].split("::") if history["history_str"] else [],
+                              task_type="sid_next", sample_id=f"sid_next:{idx}")
 
 
 class SidSFTDataset(CSVBaseDataset):
@@ -879,11 +879,8 @@ class RLTitle2SidDataset(JSONBaseDataset):
         self.prompt2history[prompt] = data_point['input']
         self.history2target[data_point['input']] = target_item
         
-        return {
-            "prompt": prompt,
-            "completion": target_item,
- 
-        }
+        return make_rl_record(prompt, target_item, task_type=data_point['task'],
+                              sample_id=f"item_identification:{idx}")
 
 
 class RLSeqTitle2SidDataset(CSVBaseDataset):
@@ -958,11 +955,9 @@ class RLSeqTitle2SidDataset(CSVBaseDataset):
         self.prompt2history[formatted_prompt] = history_data['history_str']
         self.history2target[history_data['history_str']] = target
         
-        return {
-            "prompt": formatted_prompt,
-            "completion": target,
-
-        }
+        return make_rl_record(formatted_prompt, target,
+                              history_sids=ast.literal_eval(self.data.iloc[idx]["history_item_sid"]),
+                              task_type="title_history_next_sid", sample_id=f"title_history_next_sid:{idx}")
 
 
 class RLSid2TitleDataset(JSONBaseDataset):

@@ -1,0 +1,19 @@
+{
+  "scope": "Actual SidDataset methods, all train/valid rows; CPU without ML constructors. Not full GPU/Arrow integration.",
+  "train_rows": 36259,
+  "valid_rows": 4532,
+  "legacy_train_only_lookup_mismatches": 4836,
+  "legacy_train_rows_with_target_changed_by_valid_merge": 1570,
+  "repaired_train_row_target_mismatches": 0,
+  "all_own_completions_reward_one_after_legacy_map_poisoning": true,
+  "input_sha256": {
+    "train": "da5f2af4f5047e18023dd4792f65a48bd7c8eab90447dd682fb48ca255d25f8c",
+    "valid": "12bbb02bced0bd754a8b4e0f9ca4086416e30d12b0b73a2c95e7b195dd67385a"
+  },
+  "code_sha256": {
+    "data.py": "42655a7a68e16d5dc4d5bd6b1ac190e7f617e0147af017e0055edb6f8e5f7b6d",
+    "grpo_utils.py": "e1577f9f82057b7b4154af436a9daf711c6637d9ad94cb2ef3b8d494df3b09dc",
+    "rl.py": "f3188b7aad72ab3001b09f6ccb092f09d8cbe935fdb2657623325f18a9dfebf4",
+    "minionerec_trainer.py": "72a61b543faf8a68f7e0f40c9faf747f5cd3ec6d59fd6fdf838572107e8ebba8"
+  }
+}

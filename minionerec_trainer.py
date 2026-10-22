@@ -61,6 +61,7 @@ from transformers import (
     )
 
 from LogitProcessor import ConstrainedLogitsProcessor
+from grpo_utils import RL_COLUMNS, validate_generation_groups, reward_kwargs_from_samples
 from transformers.generation import LogitsProcessor
 import math
 
@@ -597,7 +598,7 @@ class ReReTrainer(Trainer):
         # In GRPOTrainer, we preprocess data, so using the model's signature columns doesn't work.
         # Instead, we set them to the columns expected by the `training_step` method, hence the override.
         if self._signature_columns is None:
-            self._signature_columns = ["prompt"]
+            self._signature_columns = list(RL_COLUMNS)
 
     # def _get_train_sampler(self,  *args, **kwargs) -> Sampler:
     #     # Returns a sampler that ensures each prompt is repeated across multiple processes. This guarantees that
@@ -665,12 +666,7 @@ class ReReTrainer(Trainer):
     def _prepare_inputs(self, inputs: dict[str, Union[torch.Tensor, Any]]) -> dict[str, Union[torch.Tensor, Any]]:
         device = self.accelerator.device
         prompts = [x["prompt"] for x in inputs]
-
-        if self.add_gt or self.test_during_training or self.dynamic_sampling:
-            histories = [self.prompt2history[x["prompt"]] for x in inputs]
-            targets = [self.history2target[x] for x in histories]
-            # print(f"targets: {targets}")
-            num_categories = len(set(targets)) 
+        targets = validate_generation_groups(inputs, self.num_generations)
         # target_ids = self.processing_class(targets, return_tensors="pt", padding=True, padding_side="left")["input_ids"]
         # target_ids = target_ids.to(device)
         
@@ -697,7 +693,13 @@ class ReReTrainer(Trainer):
                 eos_token_id=self.processing_class.eos_token_id
             )
         self.logits_processor = LogitsProcessorList([TemperatureLogitsWarper(temperature=self.temperature), ccc])
-        self.test_lp_list = LogitsProcessorList([ccc])
+        # Processor.count is mutable: test generation must not advance the training processor.
+        test_ccc = ConstrainedLogitsProcessor(
+            prefix_allowed_tokens_fn=self.prefix_allowed_tokens_fn,
+            num_beams=self.test_beam, base_model=self.base_model,
+            eos_token_id=self.processing_class.eos_token_id,
+        )
+        self.test_lp_list = LogitsProcessorList([test_ccc])
 
         # Generate completions using either vLLM or regular generation
         if self.args.use_vllm:
@@ -856,7 +858,7 @@ class ReReTrainer(Trainer):
                         )
 
             if self.add_gt:
-                repeat = len(prompts) // num_categories
+                repeat = self.num_generations
                 new_prompt_completions = []
                 flag = False
                 # rep_ind = [random.randint(i, i+repeat-1) for i in range(0, len(prompts), repeat)]
@@ -949,9 +951,8 @@ class ReReTrainer(Trainer):
                 with torch.inference_mode():
                     rewards_per_func[:, i] = reward_func(**reward_inputs).logits[:, 0]  # Shape (B*G,)
             else:
-                # Repeat all input columns (but "prompt" and "completion") to match the number of generations
-                keys = [key for key in inputs[0] if key not in ["prompt", "completion"]]
-                reward_kwargs = {key: [example[key] for example in inputs] for key in keys}
+                # RepeatRandomSampler already repeated each complete row, including its target.
+                reward_kwargs = reward_kwargs_from_samples(inputs)
                 output_reward_func = reward_func(prompts=prompts, completions=completions, **reward_kwargs)
                 rewards_per_func[:, i] = torch.tensor(output_reward_func, dtype=torch.float32, device=device)
 
@@ -965,6 +966,10 @@ class ReReTrainer(Trainer):
         # Compute grouped-wise rewards
         mean_grouped_rewards = rewards.view(-1, self.num_generations).mean(dim=1)
         std_grouped_rewards = rewards.view(-1, self.num_generations).std(dim=1)
+        self._metrics["zero_variance_group_fraction"].append((std_grouped_rewards == 0).float().mean().item())
+        self._metrics["all_zero_reward_group_fraction"].append(
+            (rewards.view(-1, self.num_generations) == 0).all(dim=1).float().mean().item()
+        )
 
         # Normalize the rewards to compute the advantages
         mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(self.num_generations, dim=0)

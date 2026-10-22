@@ -1,5 +1,7 @@
 # MiniOneRec 源码审查
 
+> 更新（2026-10-22）：下文原版行号与缺陷描述保留为首次审查依据。GRPO主入口现已做行级标签/隔离与资源修复，当前实现和验证边界见 [GRPO_REPAIR.md](GRPO_REPAIR.md)；GPU训练尚未验证。
+
 审查版本：`5f4f733cfda387f7f6f8f158db0d300eed9471c6`。路径均相对仓库根目录，行号对应此 commit。阅读范围包括 README、三个训练入口、数据处理、RQ 模型、约束生成、评估及 GPR/HEPO 分支。仓库自带 CSV、embedding、index 和 item metadata；没有模型权重。下述结论区分已实现代码与尚待实验验证的行为。
 
 ## 目录与真实执行路径

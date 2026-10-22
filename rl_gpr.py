@@ -91,9 +91,8 @@ def train(
         parts = parse_sid(name)
         item2id_parts[name] = tuple(parts)
 
-    def hepo_reward(prompts, completions):
-        history = [prompt2history.get(prompt, "") for prompt in prompts]
-        targets_full_sid = [history2target.get(elm, "") for elm in history]
+    def hepo_reward(prompts, completions, target_sid, **kwargs):
+        targets_full_sid = target_sid
     
         rewards = []
         for i, comp_full_sid in enumerate(completions):
@@ -163,11 +162,7 @@ def train(
         if hasattr(dataset, 'history2target'):
             history2target.update(dataset.history2target)
     
-    # Add eval_data mappings
-    if hasattr(eval_data, 'prompt2history'):
-        prompt2history.update(eval_data.prompt2history)
-    if hasattr(eval_data, 'history2target'):
-        history2target.update(eval_data.history2target)
+    # Never merge validation labels into training reward lookup state.
 
     print("train_dataset: ", train_dataset)
     print("eval_dataset: ", eval_dataset)
@@ -196,9 +191,8 @@ def train(
     ndcg_rewards = [-elm/sum(ndcg_rewards) for elm in ndcg_rewards]
 
 
-    def ndcg_rule_reward(prompts, completions):
-        history = [prompt2history[prompt] for prompt in prompts]
-        targets = [history2target[elm] for elm in history]
+    def ndcg_rule_reward(prompts, completions, target_sid, **kwargs):
+        targets = target_sid
         repeat = num_generations
         rewards = []
         flag = False
@@ -222,9 +216,8 @@ def train(
         
         return rewards
 
-    def rule_reward(prompts, completions):
-        history = [prompt2history[prompt] for prompt in prompts]
-        targets = [history2target[elm] for elm in history]
+    def rule_reward(prompts, completions, target_sid, **kwargs):
+        targets = target_sid
         rewards = []
 
         for i, completion in enumerate(completions):
@@ -235,9 +228,8 @@ def train(
                 rewards.append(0.0)
         return rewards
 
-    def semantic_reward(prompts, completions):
-        history = [prompt2history[prompt] for prompt in prompts]
-        targets = [history2target[elm] for elm in history]
+    def semantic_reward(prompts, completions, target_sid, **kwargs):
+        targets = target_sid
         target_ids = [item2id[elm.strip("\"\n")] for elm in targets]
         completions = [elm.strip("\"\n") for elm in completions]
         for i, completion in enumerate(completions):
@@ -251,9 +243,8 @@ def train(
         print(rewards)
         return rewards
 
-    def cf_reward(prompts, completions):
-        history = [prompt2history[prompt] for prompt in prompts]
-        history_list = [elm.split("::") for elm in history]
+    def cf_reward(prompts, completions, target_sid, history_sids, **kwargs):
+        history_list = history_sids
         pred_ids = []
         for i, elm in enumerate(completions):
             elm = elm.strip("\n\"")

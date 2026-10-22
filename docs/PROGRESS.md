@@ -19,12 +19,12 @@
 
 | 优先级 | 问题 | 影响 | 处理记录 |
 |---|---|---|---|
-| P0 | `rl.py:120-131` 合并 train/eval 的 `history2target`；`data.py:386-388` 把相同历史压为单个目标 | 奖励标签可能错配或引用 valid target | 在 E2–E4 共同补丁中改成样本自身 target，不将 eval label 用于训练 reward。 |
+| P0 | `rl.py:120-131` 合并 train/eval 的 `history2target`；`data.py:386-388` 把相同历史压为单个目标 | 奖励标签可能错配或引用 valid target | 2026-10-22 已本地改为样本target_sid，移除rl.py全局映射与eval合并；CPU审计/回归通过，真实运行待验证。 |
 | P0 | `calc.py:62-65` 的 CC 不是完整无效 SID 比例；SID 有碰撞 | 指标可能误读 | 新增完整 invalid@K、碰撞口径及 SID/item 区分。 |
 | P0 | `requirements.txt` 锁 PyTorch 2.6/cu118/cu124 混合，Blackwell 需要兼容 wheel | 租卡后可能无法跑 | 用官方 PyTorch CUDA 12.8+ 版本建环境，先 smoke。 |
-| P0 | `rl.py:136-138` 预加载 LLM，trainer 又创建 policy/reference | `ranking` reward 下第三份权重占满单卡显存 | 在共同工程补丁中移除无用预加载；所有 E2–E4 同一处理。 |
+| P0 | `rl.py:136-138` 预加载 LLM，trainer 又创建 policy/reference | `ranking` reward 下第三份权重占满单卡显存 | 2026-10-22 已从主入口rl.py移除额外LLM；policy/reference保留，真实显存待profile。 |
 | P0 | SFT 与 eval 的序列 prompt 措辞不同（原版 `data.py:416` vs `623`） | 复现/公平对照风险 | 2026-10-20 已对齐；用真实 Dataset 方法验证普通/重复交互样本的 train/eval prompt 一致，且原 SFT 输入及 loss mask 不变。 |
-| P1 | `rl.py:58` 的 `mask_all_zero` 仅形参未接线；`rl.py:70-71` 关闭高效 SDP | 开关失效/性能浪费 | 不把该参数列为有效方法；profile 后做正确性和性能修复。 |
+| P1 | `rl.py:58` 的 `mask_all_zero` 仅形参未接线；`rl.py:70-71` 关闭高效 SDP | 开关失效/性能浪费 | mask_all_zero=True现明确报错，未冒充已实现；原SDP设置保留，后续profile。 |
 | P1 | `rq/generate_indices.py:44-49` 路径硬编码 | 无法直接重训 SID 导出 | 后续参数化，保留原版逻辑；单独标记工程修复。 |
 
 ## 实验记录模板
@@ -49,7 +49,7 @@ zero-var/all-zero 组率、KL、奖励分布：
 
 ## 下一行动与资源门槛
 
-用户已在克隆的 A800 实例完成 full-valid 评估并下载指标。助手读取本地结果、记录真实 loss/推荐指标/耗时/显存并在 CPU 上补算两个参照，未直接连接服务器。完整 predictions.json 已做对齐、集中度和重复交互分桶诊断；下一步核查全部 SID 的解码可达性及基座到 SFT 的参数更新，再决定是否调整 SFT。Test、GRPO 修复及 E2–E4 尚未开展；不宣称现有 SFT 已取得算法收益。
+当前FP32参数SFT已完成完整valid验证，作为进入RL阶段的基线，暂缓继续调SFT；多seed与其他SFT消融为P1。新模型本地备份正在下载，尚未收到SHA256完整性确认，不释放服务器权重。本地GRPO共同修复与CPU审计完成，详见 `GRPO_REPAIR.md`；下一步已有ML环境的CPU集成检查，再在可用GPU上做小规模生成/反向与显存profile，未启动正式E2。Test与个人Reward改进仍待实施。
 
 
 ## 2026-10-21 SFT 诊断更新
@@ -85,3 +85,8 @@ zero-var/all-zero 组率、KL、奖励分布：
 ## 2026-10-22 完整FP32参数SFT收益验证
 
 已收到review bundle，Base与四份数据哈希匹配旧E1；4532条valid逐条对齐并复算指标一致。新HR@5/10=0.099956/0.123345，NDCG@5/10=0.083537/0.090979；invalid均0。相对旧E1，Top-10净增308条命中、候选SID从28增至645，唯一目标SID组HR@10从2.2823%增至8.8030%。参数与optimizer状态实测FP32，训练+保存13370.17秒，allocated/reserved28.83/31.50GiB。完整valid支持本次精度配置调整有效，但仅一次seed、未分离参数/优化器作用；GRPO与test仍未开展。详情见 `experiments/E1_FP32_FULL_20261022.md`。
+
+
+## 2026-10-22 GRPO本地共同修复
+
+rl.py主入口改用样本target_sid/history_sids，移除train/eval标签字典合并及额外LLM；Trainer保留元数据、检查G组对齐、分离状态式test/train解码器，并修复add_gt组长计算。rule/ranking奖励定义和Advantage/KL/policy loss公式不变。7项CPU回归通过，实际SID Dataset方法审计36259条train/4532条valid：新行级标签错配0；旧字典复现4836条错配，valid合并改变1570条train查询目标。sft.py及SFT Dataset不变。补充真实ML环境CPU预检脚本，未安装依赖、加载权重或启动GPU训练。
