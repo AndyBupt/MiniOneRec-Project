@@ -1,0 +1,59 @@
+{
+  "paired_queries": 4532,
+  "paired_hits": {
+    "5": {
+      "both_hit": 156,
+      "new_only_hit": 297,
+      "old_only_hit": 17,
+      "both_miss": 4062
+    },
+    "10": {
+      "both_hit": 224,
+      "new_only_hit": 335,
+      "old_only_hit": 27,
+      "both_miss": 3946
+    }
+  },
+  "matched_training_fields": [
+    "sample",
+    "seed",
+    "batch_size",
+    "micro_batch_size",
+    "gradient_accumulation_steps",
+    "world_size",
+    "num_epochs",
+    "learning_rate",
+    "cutoff_len",
+    "warmup_steps",
+    "warmup_ratio",
+    "freeze_LLM",
+    "train_from_scratch",
+    "train_samples",
+    "valid_samples",
+    "torch",
+    "transformers",
+    "cuda"
+  ],
+  "matched_eval_fields": [
+    "data",
+    "queries",
+    "sample",
+    "seed",
+    "batch_size",
+    "num_beams",
+    "max_new_tokens",
+    "length_penalty",
+    "max_prompt_length",
+    "truncated_prompts",
+    "do_sample",
+    "tokenizer_vocab",
+    "tie_word_embeddings"
+  ],
+  "old_predictions_sha256": "2251d100dae55bdd3b6ea9ec74da98d0c704191270b23b1b1645966e81ce7a16",
+  "new_predictions_sha256": "f54f633d1ae321c4d8efc3b3b1dab8400c90ab624c0492b706710fbe859db517",
+  "limitations": [
+    "One seed per precision setting; no run-to-run variance measured",
+    "Initial SID weight fingerprint absent from original run; same initializer strategy retained but bitwise initialization equality not independently verified",
+    "Different model-checkpoint saving policy, unchanged training update hyperparameters"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "training_and_save_seconds": 13370.16965104267,
+  "trainer_metrics": {
+    "train_runtime": 13350.6879,
+    "train_samples_per_second": 17.939,
+    "train_steps_per_second": 0.28,
+    "total_flos": 2.3821929357090816e+17,
+    "train_loss": 0.728830527020698,
+    "epoch": 3.0
+  },
+  "final_checkpoint": "/root/autodl-tmp/MiniOneRec-Project/output/sft_e1_fp32_Industrial_and_Scientific_20261021T114122Z/final_checkpoint",
+  "best_model_checkpoint": "/root/autodl-tmp/MiniOneRec-Project/output/sft_e1_fp32_Industrial_and_Scientific_20261021T114122Z/checkpoint-3572",
+  "best_valid_loss": 1.9119441509246826,
+  "gpu_name": "NVIDIA A800-SXM4-80GB",
+  "peak_allocated_gib": 28.83111000061035,
+  "peak_reserved_gib": 31.498046875
+}

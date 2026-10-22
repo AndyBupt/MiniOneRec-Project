@@ -1,0 +1,15 @@
+{
+  "steps": 10,
+  "planned_steps": 3744,
+  "seconds": 32.09171578660607,
+  "estimated_training_seconds": 12015.138390505314,
+  "peak_allocated_gib": 28.831101417541504,
+  "peak_reserved_gib": 31.4921875,
+  "parameter_dtypes": {
+    "torch.float32": 338
+  },
+  "optimizer_state_dtypes": {
+    "torch.float32": 676
+  },
+  "passed": true
+}

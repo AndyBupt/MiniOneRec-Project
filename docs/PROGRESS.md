@@ -1,6 +1,6 @@
 # 项目进度与实验日志
 
-## 当前状态（2026-10-21）
+## 当前状态（2026-10-22）
 
 | 项目 | 状态 | 证据/下一步 |
 |---|---|---|
@@ -8,12 +8,12 @@
 | 源码审查 | 完成首轮 | README、SFT/RL/HEPO、数据、RQ-VAE、约束解码与指标已审；细节见 `CODEBASE_ANALYSIS.md`。 |
 | 自带数据静态审计 | 完成初步 | Industrial 36,259/4,532/4,533 train/valid/test 行；3,686 item 对 3,670 唯一 SID。Office 38,924/4,866/4,866；3,459 对 3,444。未做时间戳/用户级全量核查。 |
 | 资源可行性 | A800 SFT 已实测 | A800-SXM4-80GB；全量 SFT 训练加保存 11,263.16 秒，CUDA peak allocated/reserved 14.42/16.35 GiB。该结果不代表 GRPO 的显存需求。 |
-| 模型权重/大型数据下载 | 已用于 SFT | 基座路径 `/root/autodl-tmp/models/Qwen2.5`；版本 `8faed761d45a263340a0528343f099c05c9a4323`。用户已提供训练正常结束与最终 2.9GiB 权重文件的证据；最终模型重载仍待验证。 |
-| 训练/评估 | E1 训练完成，推荐评估待做 | 用户日志确认 3 epochs、3744 steps、COMPLETED；train loss 1.0992、best valid loss 2.8872、best checkpoint 3572。HR/NDCG 仍为空。详见 `experiments/E1_SFT_20261020.md`。 |
+| 模型权重/大型数据下载 | 已用于 SFT | 基座路径 `/root/autodl-tmp/models/Qwen2.5`；版本 `8faed761d45a263340a0528343f099c05c9a4323`。用户已提供训练正常结束与最终 2.9GiB 权重文件的证据；两次完整valid均已成功重载。 |
+| 训练/评估 | BF16与FP32完整SFT/valid均完成 | 旧E1 HR@10=0.055384，新FP32参数E1=0.123345，NDCG@10=0.090979。实测训练+保存3小时42分50秒、allocated28.83GiB；下一步保留权重，修复GRPO共同工程问题。详见 `experiments/E1_FP32_FULL_20261022.md`。 |
 | 本地学习入口 | 已准备 | 新增 `docs/LEARNING_RUNBOOK.md`、只读 `scripts/inspect_data.py` 与独立 `scripts/sft_smoke_single_gpu.sh`；数据检查已在本地执行，shell/Python 语法已检查；SFT 脚本尚未在 GPU 上运行。 |
-| 训练产物本地备份 | 已下载并静态核验 | `/Users/andy/研二/rec模型权重/e1_sft_backup.tar` 为 2.908 GiB，含最终模型/tokenizer/运行配置/日志。数据哈希与本地一致，560 个 SID token 完整，模型头部和词表大小匹配；尚未做 GPU 重载和推荐评估。 |
+| 训练产物本地备份 | 已下载并静态核验 | `/Users/andy/研二/rec模型权重/e1_sft_backup.tar` 为 2.908 GiB，含最终模型/tokenizer/运行配置/日志。数据哈希与本地一致，560 个 SID token 完整，模型头部和词表大小匹配；旧模型已在服务器重载评估；新FP32权重尚未本地备份。 |
 | E1 推荐评估 | 完整 valid 已完成 | 4532 条 SID HR@5/10=0.038173/0.055384，NDCG@5/10=0.035078/0.040476；invalid/missing/duplicate 均 0。评估 548.58 秒，A800 CUDA allocated/reserved 3.00/3.10 GiB。238 条目标 SID 碰撞；详见 `experiments/E1_VALID_20261021.md`。 |
-| 简单参照与诊断 | 预测明细已审计 | 训练集热门 SID HR@5/10=0.046778/0.056708；最近交互 SID+热门补齐为 0.075243/0.082966。当前 SFT 尚未超过参照；4532 条样本与 CSV 对齐且指标复算一致。全体 Top-10 仅覆盖 28 个 SID，Top-1 仅 4 个。详见预测审计 JSON 和实验记录。 |
+| 简单参照与诊断 | 预测明细已审计 | 训练集热门 SID HR@5/10=0.046778/0.056708；最近交互 SID+热门补齐为 0.075243/0.082966。旧SFT未超过参照；新FP32参数SFT已超过所列参照。两次4532条预测均对齐复算，候选覆盖28→645个SID，Top-1为4→157个。详见预测审计 JSON 和实验记录。 |
 
 ## 已发现问题（按优先级）
 
@@ -80,3 +80,8 @@ zero-var/all-zero 组率、KL、奖励分布：
 ## 2026-10-21 完整FP32参数SFT对照脚本
 
 已交付 `scripts/sft_fp32_full_single_gpu.sh`：原Base重新初始化、原三任务与原超参，扩SID后再提升参数到FP32；第10步资源profile、模型单独保存、自动完整valid评估及不含权重的review_bundle。增加eval对FP32分片权重的哈希支持。至少35GiB空闲磁盘；此轮不保存optimizer，不能精确断点续训。语法、profile资源门槛及单文件/分片哈希CPU测试通过，实际GPU训练尚未启动。详见 `SFT_FP32_FULL_RUN.md`。
+
+
+## 2026-10-22 完整FP32参数SFT收益验证
+
+已收到review bundle，Base与四份数据哈希匹配旧E1；4532条valid逐条对齐并复算指标一致。新HR@5/10=0.099956/0.123345，NDCG@5/10=0.083537/0.090979；invalid均0。相对旧E1，Top-10净增308条命中、候选SID从28增至645，唯一目标SID组HR@10从2.2823%增至8.8030%。参数与optimizer状态实测FP32，训练+保存13370.17秒，allocated/reserved28.83/31.50GiB。完整valid支持本次精度配置调整有效，但仅一次seed、未分离参数/优化器作用；GRPO与test仍未开展。详情见 `experiments/E1_FP32_FULL_20261022.md`。
