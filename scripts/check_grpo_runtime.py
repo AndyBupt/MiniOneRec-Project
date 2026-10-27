@@ -51,8 +51,17 @@ def check():
     cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "ReReTrainer")
     method = next(node for node in cls.body if isinstance(node, ast.FunctionDef) and node.name == "_prepare_inputs")
     wanted = {"mean_grouped_rewards", "std_grouped_rewards", "advantages"}
-    assignments = [node for node in method.body if isinstance(node, ast.Assign)
-                   and any(isinstance(target, ast.Name) and target.id in wanted for target in node.targets)]
+    assignments = []
+    for node in method.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        names = {target.id for target in node.targets if isinstance(target, ast.Name)}
+        if names & wanted:
+            assignments.append(node)
+        # Later code slices advantages for this process. This fixture checks the
+        # group normalization only, before distributed slicing.
+        if "advantages" in names:
+            break
     if len(assignments) != 5:
         raise ValueError("Trainer normalization changed; review the CPU fixture")
     scope = {"rewards": torch.tensor([1., 0., 0., 0., 0., 0., 0., 0.]),
