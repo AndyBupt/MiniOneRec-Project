@@ -68,7 +68,16 @@ def train(
     task_mode: str = "mixed",
     sample: int = -1,
     max_steps: int = -1,
+    optim: str = "paged_adamw_32bit",
+    parameter_dtype: str = "float32",
+    max_prompt_length: int = 512,
+    max_completion_length: int = 128,
+    gradient_checkpointing: bool = False,
+    save_steps: float = 0.1,
+    save_total_limit: int = 20,
 ):
+    if parameter_dtype not in ("float32", "bfloat16"):
+        raise ValueError("parameter_dtype must be float32 or bfloat16")
     if task_mode not in ("mixed", "sid"):
         raise ValueError("task_mode must be mixed (upstream tasks) or sid (explicit diagnostic scope)")
     if reward_type not in ("rule", "ranking", "ranking_only", "semantic", "sasrec"):
@@ -213,10 +222,15 @@ def train(
     os.environ["WANDB_MODE"] = "offline"
 
     training_args = GRPOConfig(output_dir=output_dir,
-                                save_steps=0.1,
-                                save_total_limit=20,
+                                save_steps=save_steps,
+                                save_total_limit=save_total_limit,
                                 eval_strategy="steps",
-                                max_completion_length=128,
+                                max_completion_length=max_completion_length,
+                                max_prompt_length=max_prompt_length,
+                                model_init_kwargs={"torch_dtype": parameter_dtype},
+                                gradient_checkpointing=gradient_checkpointing,
+                                gradient_checkpointing_kwargs={"use_reentrant": False},
+                                use_vllm=False,
                                 num_generations=num_generations,
                                 temperature=temperature,
                                 sync_ref_model=sync_ref_model,
@@ -234,7 +248,7 @@ def train(
                                 seed=seed,
                                 data_seed=seed,
                                 bf16=True,
-                                optim="paged_adamw_32bit",
+                                optim=optim,
                                 lr_scheduler_type="cosine", 
                                 save_strategy="steps",
                                 report_to=[],
