@@ -61,7 +61,8 @@ from transformers import (
     )
 
 from LogitProcessor import ConstrainedLogitsProcessor
-from grpo_utils import RL_COLUMNS, validate_generation_groups, reward_kwargs_from_samples
+from grpo_utils import RL_COLUMNS, validate_generation_groups, reward_kwargs_from_samples, gated_prefix_signals
+from grpo_diagnostics import record_kl_event
 from transformers.generation import LogitsProcessor
 import math
 
@@ -228,6 +229,8 @@ class ReReTrainer(Trainer):
         #*loss
         dapo: bool = False,
         gspo: bool = False,
+        gated_prefix: bool = False,
+        prefix_advantage_scale: float = 0.1,
 
         #* others
         info_file: str = None,
@@ -389,6 +392,10 @@ class ReReTrainer(Trainer):
         self.dynamic_sampling = dynamic_sampling
         self.dapo = dapo
         self.gspo = gspo
+        self.gated_prefix = gated_prefix
+        if not 0 <= prefix_advantage_scale <= 1:
+            raise ValueError("prefix_advantage_scale must be in [0, 1]")
+        self.prefix_advantage_scale = prefix_advantage_scale
         # self.logits_processor = logits_processor
 
         # Check if the per_device_train/eval_batch_size * num processes can be divided by the number of generations
@@ -984,6 +991,17 @@ class ReReTrainer(Trainer):
         )
         advantages = advantages[process_slice]
         sliced_rewards = rewards[process_slice]
+        if self.gated_prefix:
+            kwargs = reward_kwargs_from_samples(inputs)
+            _, scales, eligible = gated_prefix_signals(
+                prompts, completions, kwargs["target_sid"], kwargs["task_type"],
+                self.num_generations, kwargs["sample_id"], self.prefix_advantage_scale)
+            advantages = advantages * torch.tensor(scales, device=device, dtype=advantages.dtype)
+            self._metrics["prefix_eligible_group_fraction"].append(
+                sum(eligible) / len(eligible))
+        local_group_adv = advantages.view(-1, self.num_generations)
+        self._metrics["nonzero_advantage_group_fraction"].append(
+            (local_group_adv.abs().sum(1) > 0).float().mean().item())
 
 
 
@@ -1034,6 +1052,8 @@ class ReReTrainer(Trainer):
             "ref_per_token_logps": ref_per_token_logps,
             "advantages": advantages,
             "sliced_rewards": sliced_rewards,
+            "diagnostic_sample_ids": [row.get("sample_id") for row in inputs],
+            "diagnostic_task_types": [row.get("task_type") for row in inputs],
         }
     
 
@@ -1052,6 +1072,7 @@ class ReReTrainer(Trainer):
 
         ref_per_token_logps = inputs["ref_per_token_logps"]
         per_token_kl = torch.exp(ref_per_token_logps - per_token_logps) - (ref_per_token_logps - per_token_logps) - 1
+        record_kl_event(self, inputs, per_token_logps, ref_per_token_logps, per_token_kl)
 
         advantages = inputs["advantages"]
 

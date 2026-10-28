@@ -4,6 +4,7 @@ These helpers deliberately have no access to train/valid history-to-target maps.
 """
 
 import math
+import re
 
 
 RL_COLUMNS = ["prompt", "completion", "target_sid", "history_sids", "task_type", "sample_id"]
@@ -89,3 +90,53 @@ def make_ranking_reward(num_generations):
         return rewards
 
     return ndcg_rule_reward
+
+
+def gated_prefix_signals(prompts, completions, target_sid, task_type, num_generations,
+                         sample_id=None, advantage_scale=0.1):
+    """E3: SID-next all-miss groups only; supplementary signal, not a new SID algorithm.
+
+    Return per-completion bonuses, post-normalization scales and eligible flags.
+    Full-match groups and other tasks retain their original ranking objective.
+    """
+    _check_lengths(prompts, completions, target_sid)
+    if not 0 <= advantage_scale <= 1 or not math.isfinite(advantage_scale):
+        raise ValueError("prefix advantage scale must be finite and in [0, 1]")
+    if len(task_type) != len(prompts) or (sample_id is not None and len(sample_id) != len(prompts)):
+        raise ValueError("One task/sample ID is required per completion")
+    rows = [{"prompt": p, "target_sid": t, "sample_id": sample_id[i] if sample_id else None}
+            for i, (p, t) in enumerate(zip(prompts, target_sid))]
+    validate_generation_groups(rows, num_generations)
+    normalize = lambda s: s.strip('\n" ')
+    pattern = re.compile(r"<a_(\d+)><b_(\d+)><c_(\d+)>")
+    bonuses, scales, eligible = [], [], []
+    for start in range(0, len(prompts), num_generations):
+        end = start + num_generations
+        tasks = task_type[start:end]
+        if len(set(tasks)) != 1:
+            raise ValueError("Generation group mixes task types")
+        target = normalize(target_sid[start])
+        parts = pattern.fullmatch(target)
+        if parts is None:
+            raise ValueError(f"Invalid three-level target SID: {target}")
+        hit = any(normalize(c) == target for c in completions[start:end])
+        active = tasks[0] == "sid_next" and not hit
+        for completion in completions[start:end]:
+            candidate = pattern.fullmatch(normalize(completion))
+            bonus = 0.0
+            if active and candidate is not None:
+                if candidate[1] == parts[1]:
+                    bonus = 0.2
+                    if candidate[2] == parts[2]:
+                        bonus = 0.5
+            bonuses.append(bonus)
+            scales.append(advantage_scale if active else 1.0)
+            eligible.append(active)
+    return bonuses, scales, eligible
+
+
+def make_gated_prefix_reward(num_generations):
+    def gated_prefix_reward(prompts, completions, target_sid, task_type, sample_id=None, **kwargs):
+        return gated_prefix_signals(prompts, completions, target_sid, task_type,
+                                    num_generations, sample_id)[0]
+    return gated_prefix_reward

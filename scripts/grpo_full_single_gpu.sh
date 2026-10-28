@@ -7,7 +7,15 @@ export CUDA_VISIBLE_DEVICES=0
 export HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 WANDB_MODE=disabled
 category=Industrial_and_Scientific
 run_id="$(date -u +%Y%m%dT%H%M%SZ)"
-output_dir="$PWD/output/grpo_e2_${category}_${run_id}"
+variant="${GRPO_VARIANT:-e2}"
+case "$variant" in
+  e2) reward_type=ranking; prefix_scale=0.1 ;;
+  e3) reward_type=ranking_prefix; prefix_scale=0.1 ;;
+  e4_no_scale) reward_type=ranking_prefix; prefix_scale=1.0 ;;
+  e4_no_prefix) reward_type=ranking; prefix_scale=0.1 ;;
+  *) echo "Unknown GRPO_VARIANT: $variant" >&2; exit 1 ;;
+esac
+output_dir="$PWD/output/grpo_${variant}_${category}_${run_id}"
 test ! -e "$output_dir"
 python - "$CHECKPOINT_PATH" <<'PY'
 import json, shutil, sys
@@ -41,7 +49,7 @@ args=(
   --num_generations 8 --gradient_accumulation_steps 8
   --num_train_epochs 1 --max_steps -1
   --learning_rate 1e-6 --beta 0.001 --temperature 1.0
-  --reward_type ranking --beam_search True
+  --reward_type "$reward_type" --prefix_advantage_scale "$prefix_scale" --beam_search True
   --parameter_dtype float32 --optim adamw_torch
   --max_prompt_length 512 --max_completion_length 16
   --gradient_checkpointing True

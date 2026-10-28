@@ -95,3 +95,7 @@ rl.py主入口改用样本target_sid/history_sids，移除train/eval标签字典
 ## 2026-10-28 H800单卡GRPO E2完成与审查
 
 完成mixed 52775条、6597步、1epoch，Trainer耗时21660秒。4532条valid逐条对齐复算通过：HR@10=0.133716、NDCG@10=0.100817，相对FP32 E1提升8.41%/10.81%；Top10新增100/丢失53，净增47。全零奖励组日志均值86.50%，2362步出现极大KL/梯度尖峰，尚未定位，不能称稳定。下一步先诊断KL数值，再确定独立Reward E3，固定共同预算。详见 experiments/E2_GRPO_20261028.md。
+
+## 2026-10-28 E3代码与消融准备
+
+冻结模型检查显示FP32/BF16均有较大逐token KL；12条位置检查中FP32隐式padding/generate差异小于1e-4，暂不修改position实现，不能认定历史尖峰已定位。实现仅sid_next无完整命中组的0.2/0.5前缀补充奖励，标准化后Advantage乘0.1；完整命中组与其他任务沿用E2。前缀本身已有HEPO来源，不宣称原创；新贡献范围为任务/组门控、强度控制和消融。e3/e4_no_scale入口已准备，13项CPU测试通过；真实ML环境预检及GPU E3待执行。增加有限数量的异常token KL事件记录和训练资源统计，不裁剪KL或修改共同loss公式。详见 E3_GATED_PREFIX_RUN.md。

@@ -8,11 +8,12 @@ from torch.utils.data import ConcatDataset
 from transformers import AutoTokenizer
 import os
 from minionerec_trainer import ReReTrainer
-from grpo_utils import rule_reward, make_ranking_reward
+from grpo_utils import rule_reward, make_ranking_reward, make_gated_prefix_reward
 from fire import Fire
 import pickle
 import math
 import json
+import time
 
 os.environ['WANDB_MODE'] = 'disabled'
 
@@ -75,12 +76,13 @@ def train(
     gradient_checkpointing: bool = False,
     save_steps: float = 0.1,
     save_total_limit: int = 20,
+    prefix_advantage_scale: float = 0.1,
 ):
     if parameter_dtype not in ("float32", "bfloat16"):
         raise ValueError("parameter_dtype must be float32 or bfloat16")
     if task_mode not in ("mixed", "sid"):
         raise ValueError("task_mode must be mixed (upstream tasks) or sid (explicit diagnostic scope)")
-    if reward_type not in ("rule", "ranking", "ranking_only", "semantic", "sasrec"):
+    if reward_type not in ("rule", "ranking", "ranking_prefix", "ranking_only", "semantic", "sasrec"):
         raise ValueError(f"Unsupported reward_type: {reward_type}")
     if num_generations < 2 or train_batch_size % num_generations or eval_batch_size % num_generations:
         raise ValueError("Local train/eval batch sizes must be multiples of num_generations >=2")
@@ -211,6 +213,8 @@ def train(
         reward_fun = rule_reward
     elif reward_type == "ranking":
         reward_fun = [rule_reward, ndcg_rule_reward]
+    elif reward_type == "ranking_prefix":
+        reward_fun = [rule_reward, ndcg_rule_reward, make_gated_prefix_reward(num_generations)]
     elif reward_type == "ranking_only":
         reward_fun = ndcg_rule_reward
     elif reward_type == "semantic":
@@ -259,6 +263,8 @@ def train(
         base_model=model_path,
         dapo=dapo,
         gspo=gspo,
+        gated_prefix=reward_type == "ranking_prefix",
+        prefix_advantage_scale=prefix_advantage_scale,
         add_gt=add_gt,
         dynamic_sampling=dynamic_sampling,
         beam_search=beam_search,
@@ -271,7 +277,23 @@ def train(
         args=training_args,
     )
 
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
+    training_start = time.monotonic()
     trainer.train()
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+    resource_profile = {
+        "scope": "Trainer.train including periodic evaluation/checkpoints; final export excluded",
+        "trainer_seconds": time.monotonic() - training_start,
+        "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+        "peak_allocated_gib": torch.cuda.max_memory_allocated()/2**30 if torch.cuda.is_available() else None,
+        "peak_reserved_gib": torch.cuda.max_memory_reserved()/2**30 if torch.cuda.is_available() else None,
+        "reward_type": reward_type, "prefix_advantage_scale": prefix_advantage_scale,
+    }
+    os.makedirs(output_dir, exist_ok=True)
+    with open(os.path.join(output_dir, "training_resources.json"), "w") as handle:
+        json.dump(resource_profile, handle, indent=2)
 
     trainer.save_model(output_dir)
 

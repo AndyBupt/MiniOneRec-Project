@@ -75,10 +75,41 @@ def check():
         GRPOConfig(output_dir=folder, use_cpu=True, bf16=False, fp16=False,
                    per_device_train_batch_size=4, per_device_eval_batch_size=4,
                    num_generations=4, report_to=[], use_vllm=False)
+    from grpo_utils import gated_prefix_signals, make_gated_prefix_reward
+    partials = ["<a_1><b_2><c_4>", "<a_1><b_9><c_4>", "<a_9><b_2><c_4>", "WRONG"]
+    bonus, scales, _ = gated_prefix_signals(["p"]*4, partials, [x]*4, ["sid_next"]*4, 4)
+    if bonus != [.5, .2, 0., 0.]:
+        raise ValueError("Gated prefix callback alignment failed")
+    raw = torch.tensor(bonus)
+    normalized = (raw-raw.mean())/(raw.std()+1e-4)
+    scaled = normalized * torch.tensor(scales)
+    if not torch.allclose(scaled, normalized*.1):
+        raise ValueError("Prefix post-normalization scaling failed")
+    from collections import defaultdict
+    from grpo_diagnostics import record_kl_event
+    with TemporaryDirectory() as folder:
+        recorder = SimpleNamespace(args=SimpleNamespace(output_dir=folder),
+                                   accelerator=SimpleNamespace(process_index=0),
+                                   state=SimpleNamespace(global_step=12),
+                                   model=SimpleNamespace(training=True), _metrics=defaultdict(list))
+        diagnostic_inputs = {"completion_mask": torch.tensor([[1, 0]]),
+                             "completion_ids": torch.tensor([[3, 0]])}
+        # A masked padding spike must not trigger a record.
+        record_kl_event(recorder, diagnostic_inputs, torch.zeros(1, 2),
+                        torch.zeros(1, 2), torch.tensor([[0., 1e12]]))
+        if list(Path(folder).glob("*.jsonl")):
+            raise ValueError("KL recorder included masked padding")
+        record_kl_event(recorder, diagnostic_inputs, torch.tensor([[-20., 0.]]),
+                        torch.tensor([[-1., 0.]]), torch.tensor([[20000., 0.]]))
+        event = json.loads((Path(folder)/"kl_events_rank0.jsonl").read_text())
+        if event["tokens"][0]["token_id"] != 3:
+            raise ValueError("KL recorder token alignment failed")
     return {"status": "PASS", "torch": torch.__version__, "transformers": transformers.__version__,
             "trl": trl.__version__, "arrow_sampler_reward_alignment": True,
             "trainer_column_retention": True, "actual_cpu_advantages": advantages.tolist(),
             "cpu_grpo_config": True,
+            "gated_prefix_reward_and_scale": True,
+            "kl_event_recorder_cpu": True,
             "scope": "Imports, Arrow rows, actual sampler, label columns, rewards and CPU advantage math. No model loaded, GPU generation or training performed."}
 
 
