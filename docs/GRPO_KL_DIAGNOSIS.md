@@ -1,0 +1,22 @@
+# GRPO KL 诊断（2026-10-28）
+
+## 已知证据
+
+E2有6597次更新；2362步KL约2.8895e8，8步KL>100。去掉最大尖峰，逐更新KL均值约9.01355，整体中位数0.856。生成长度一直为5。参数为FP32、BF16混合计算；原实现通过selective_log_softmax计算实际token概率，KL用exp(delta)-delta-1。大正delta会指数放大，但现有标量日志没有token、task或delta，不能倒推出唯一原因。
+
+注意：组内优势均值约0，所以policy loss标量接近0不代表梯度为0；平均loss被KL异常主导，不能与SFT loss比较。裁剪前grad_norm尖峰不等于实际更新大小。约束beam sampling并非从原始完整softmax策略独立采样；该轨迹上的KL估计不等于精确全分布KL，不能直接将标量解释成策略距离。
+
+## 冻结检查点诊断
+
+新增scripts/diagnose_grpo_kl.py：固定seed42抽取128个valid查询的已保存Top10，补newline/EOS，按512token prompt上限构造批次，依次加载原SFT reference与E2 policy（均FP32参数）。同一token比较reference FP32 forward、policy FP32 forward、policy BF16 autocast forward；显式FP32 log_softmax计算概率与KL，输出最极端30个token及分位数。只读取本地模型，不生成、不更新、不使用test。参考/策略vocab必须完全一致。
+
+此工具诊断最终模型的保存候选，不能复现已丢失的2362步微批、训练模式或原始选择性logsoftmax运算；eval模式和显式FP32 softmax也与训练有差异。它用于确定后续取证方向，不能单独宣判原因。GPU运行待用户执行；本地只验证语法、汇总非有限值逻辑和7项现有标签测试。
+
+## 如何决定下一步
+
+- 若FP32与BF16都存在大概率比，优先检查token位置（SID层/newline/EOS）、reference与policy偏移、训练任务与解码分布，而非直接归咎低精度。
+- 若只有BF16出现明显异常，再使用原路径/相同token验证低精度logits及logsoftmax误差。不要直接clamp KL掩盖问题。
+- 若最终模型未复现，需在后续受控诊断中记录异常事件的step、task、sample_id、mask、ref/current per-token logp及loss精度；旧日志不足以还原过去。
+- 若发现必须修复的共同计算问题，E2和E3采用同一修复，重建可比baseline；不把修复收益混入Reward创新。
+
+E3候选仍围绕86.5%全零奖励组。前缀奖励并非原创，需审查已有HEPO并比较覆盖/语义误奖励风险；当前不改变reward、不启动E3。最终test保留至方法/超参冻结。

@@ -1,0 +1,26 @@
+{
+  "queries": 4532,
+  "metric_unit": "SID exact match; raw ranks retained, no deduplication or history filtering",
+  "catalog_items": 3686,
+  "catalog_unique_sids": 3670,
+  "target_collision_queries": 238,
+  "target_collision_query_fraction": 0.052515445719329215,
+  "invalid_definition": "out-of-catalog or missing slots divided by queries*K",
+  "HR@5": 0.11032656663724624,
+  "NDCG@5": 0.09331344486661762,
+  "invalid_sid@5": 0.0,
+  "missing_slots@5": 0.0,
+  "duplicate_slots@5": 0.0,
+  "HR@10": 0.13371579876434245,
+  "NDCG@10": 0.1008165308701678,
+  "invalid_sid@10": 0.0,
+  "missing_slots@10": 0.0,
+  "duplicate_slots@10": 0.0,
+  "unique_target_sid_subset": {
+    "queries": 4294,
+    "HR@5": 0.0735910572892408,
+    "NDCG@5": 0.0567651608052945,
+    "HR@10": 0.09827666511411272,
+    "NDCG@10": 0.06468411417466809
+  }
+}

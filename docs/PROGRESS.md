@@ -90,3 +90,8 @@ zero-var/all-zero 组率、KL、奖励分布：
 ## 2026-10-22 GRPO本地共同修复
 
 rl.py主入口改用样本target_sid/history_sids，移除train/eval标签字典合并及额外LLM；Trainer保留元数据、检查G组对齐、分离状态式test/train解码器，并修复add_gt组长计算。rule/ranking奖励定义和Advantage/KL/policy loss公式不变。7项CPU回归通过，实际SID Dataset方法审计36259条train/4532条valid：新行级标签错配0；旧字典复现4836条错配，valid合并改变1570条train查询目标。sft.py及SFT Dataset不变。补充真实ML环境CPU预检脚本，未安装依赖、加载权重或启动GPU训练。
+
+
+## 2026-10-28 H800单卡GRPO E2完成与审查
+
+完成mixed 52775条、6597步、1epoch，Trainer耗时21660秒。4532条valid逐条对齐复算通过：HR@10=0.133716、NDCG@10=0.100817，相对FP32 E1提升8.41%/10.81%；Top10新增100/丢失53，净增47。全零奖励组日志均值86.50%，2362步出现极大KL/梯度尖峰，尚未定位，不能称稳定。下一步先诊断KL数值，再确定独立Reward E3，固定共同预算。详见 experiments/E2_GRPO_20261028.md。
