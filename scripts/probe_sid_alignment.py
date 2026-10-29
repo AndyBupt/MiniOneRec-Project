@@ -10,10 +10,21 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 
+def build_alignment_dataset(tokenizer, item_file, index_file):
+    from data import SidItemFeatDataset
+
+    class LazyProbeDataset(SidItemFeatDataset):
+        def get_inputs(self):
+            # Only suppress eager catalog encoding; inherit the actual pre().
+            pass
+
+    return LazyProbeDataset(item_file=item_file, index_file=index_file,
+                            tokenizer=tokenizer, max_len=512, test=True, seed=42)
+
+
 def main():
     import torch
     from transformers import AutoTokenizer, AutoModelForCausalLM
-    from data import SidItemFeatDataset, Tokenizer
 
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--model', required=True)
@@ -27,13 +38,9 @@ def main():
     start = time.monotonic()
     tok = AutoTokenizer.from_pretrained(a.model, local_files_only=True)
     tok.pad_token_id = tok.eos_token_id
-    # No tokenizer during construction: avoid eagerly encoding the entire catalog.
-    # Attach the actual training wrapper and call pre() only for selected rows.
-    ds = SidItemFeatDataset(
+    ds = build_alignment_dataset(tok,
         item_file=str(ROOT/'data/Amazon/index/Industrial_and_Scientific.item.json'),
-        index_file=str(ROOT/'data/Amazon/index/Industrial_and_Scientific.index.json'),
-        tokenizer=None, max_len=512, test=True, seed=42)
-    ds.tokenizer = Tokenizer(tok)
+        index_file=str(ROOT/'data/Amazon/index/Industrial_and_Scientific.index.json'))
     model = AutoModelForCausalLM.from_pretrained(
         a.model, torch_dtype=torch.bfloat16, local_files_only=True).cuda().eval()
     catalog = set(ds.sid2title)
